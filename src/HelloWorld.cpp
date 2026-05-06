@@ -1,0 +1,185 @@
+#include <glad/glad.h> 
+#include <glfw3.h>
+#include <iostream>
+#include <stdio.h>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <math.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include "Shader.h"
+#include "stb_image.h"
+
+static std::string resourcePath(const std::string& relativePath)
+{
+    return std::string(PROJECT_SOURCE_DIR) + "/" + relativePath;
+}
+
+//resize回调函数
+void framebuffer_size_callback(GLFWwindow* window, int width, int height){
+    glViewport(0,0,width,height);
+}
+
+//处理输入，按esc退出
+void processInput(GLFWwindow* window){
+    if(glfwGetKey(window,GLFW_KEY_ESCAPE)==GLFW_PRESS){
+        glfwSetWindowShouldClose(window,true);
+    }
+    if(glfwGetKey(window,GLFW_KEY_R)==GLFW_PRESS){
+        std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");
+        std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
+        Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+        myShader.use();
+    }
+}
+
+int main(){
+    //初始化Glfw，使用主版本号3，次版本3
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
+    //使用核心模式
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    GLFWwindow* window = glfwCreateWindow(800,600,"LearnOpenGL",NULL,NULL);
+    if(window==NULL){
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+
+    //初始化glad,通过glfw的getprocaddress去找到所有的opengl函数地址
+    if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
+        std::cout << "Failed to initialized GLAD" << std::endl;
+        return -1;
+    }
+    
+    //注册窗口改变的回调函数
+    glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
+    //设置窗口大小
+    glViewport(0,0,800,600);
+
+    float vertices[] = {
+    //     ---- 位置 ----       ---- 颜色 ----     - 纹理坐标 -
+         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 右上
+         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 右下
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 左下
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // 左上
+    };
+    unsigned int indices[] = {
+        // 注意索引从0开始! 
+        // 此例的索引(0,1,2,3)就是顶点数组vertices的下标，
+        // 这样可以由下标代表顶点组合成矩形
+        0, 1, 2, // 第一个三角形
+        0, 2, 3, // 第二个三角形
+    };
+
+    //加载图片的时候反转y轴
+    stbi_set_flip_vertically_on_load(true);
+    //加载图片
+    int width1,height1,nrChannels1;
+    std::string texturePath1 = resourcePath("src/texture/texture_brick.jpg");
+    unsigned char *data1 = stbi_load(texturePath1.c_str(),&width1,&height1,&nrChannels1,0);
+
+    //加载图片
+    int width2,height2,nrChannels2;
+    std::string texturePath2 = resourcePath("src/texture/awesomeface.png");
+    unsigned char *data2 = stbi_load(texturePath2.c_str(),&width2,&height2,&nrChannels2,0);
+
+    //创建纹理
+    unsigned int texture1;
+    glGenTextures(1,&texture1);
+    glBindTexture(GL_TEXTURE_2D,texture1);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,width1,height1,0,GL_RGB,GL_UNSIGNED_BYTE,data1);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    //设置纹理参数
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    unsigned int texture2;
+    glGenTextures(1,&texture2);
+    glBindTexture(GL_TEXTURE_2D,texture2);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,width2,height2,0,GL_RGBA,GL_UNSIGNED_BYTE,data2);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    //同理设置纹理参数
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    //记得释放图像资源
+    stbi_image_free(data1);
+    stbi_image_free(data2);
+
+    //创建VAO
+    unsigned int VAO;
+    glGenVertexArrays(1,&VAO);
+    glBindVertexArray(VAO);
+
+    //创建VBO并且把顶点数据塞入VBO中。
+    unsigned int VBO;
+    glGenBuffers(1,&VBO);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(vertices),vertices,GL_STATIC_DRAW);
+
+    unsigned int EBO;
+    glGenBuffers(1,&EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(indices), indices, GL_STATIC_DRAW);
+
+    //解析缓存里的数据，告诉openGL如何解析顶点数据
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,8*sizeof(float), (void*)(6*sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");
+    std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
+    Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+    myShader.use();
+    //手动设置或者使用写好的方法设置
+    glUniform1i(glGetUniformLocation(myShader.ID,"texture1"),0);
+    myShader.setInt("texture2",1);
+
+    while(!glfwWindowShouldClose(window)){
+        processInput(window);
+
+        //清楚屏幕后用什么颜色代替
+        glClearColor(0.3f,0.4f,0.5f,1.0f);
+        //清空颜色缓冲位
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        //使用shader和纹理
+        myShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D,texture1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D,texture2);
+
+        glBindVertexArray(VAO);
+        //---画三角形---
+        glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,0);
+
+        //双缓冲，交换颜色缓冲
+        glfwSwapBuffers(window);
+        //检测有无事件触发（比如键盘输入鼠标移动），更新窗口并且调用回调函数
+        glfwPollEvents();
+
+    }
+
+    //释放所有资源
+    glfwTerminate();
+    return 0;
+}
+
+
