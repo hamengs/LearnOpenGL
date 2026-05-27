@@ -65,13 +65,63 @@ int main(){
     //设置窗口大小
     glViewport(0,0,800,600);
 
-    float vertices[] = {
-    //     ---- 位置 ----       ---- 颜色 ----     - 纹理坐标 -
-         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 右上
-         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 右下
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 左下
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // 左上
+    glm::vec3 cubePositions[] = {
+      glm::vec3( 0.0f,  0.0f,  0.0f), 
+      glm::vec3( 2.0f,  5.0f, -15.0f), 
+      glm::vec3(-1.5f, -2.2f, -2.5f),  
+      glm::vec3(-3.8f, -2.0f, -12.3f),  
+      glm::vec3( 2.4f, -0.4f, -3.5f),  
+      glm::vec3(-1.7f,  3.0f, -7.5f),  
+      glm::vec3( 1.3f, -2.0f, -2.5f),  
+      glm::vec3( 1.5f,  2.0f, -2.5f), 
+      glm::vec3( 1.5f,  0.2f, -1.5f), 
+      glm::vec3(-1.3f,  1.0f, -1.5f)  
     };
+
+    float vertices[] = {
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    };
+
     unsigned int indices[] = {
         // 注意索引从0开始! 
         // 此例的索引(0,1,2,3)就是顶点数组vertices的下标，
@@ -79,6 +129,23 @@ int main(){
         0, 1, 2, // 第一个三角形
         0, 2, 3, // 第二个三角形
     };
+    glm::mat4 model;
+    float radius = 10.0f;
+    glm::mat4 view;
+    view = glm::lookAt(glm::vec3(0.0f,0.0f,3.0f),
+                        glm::vec3(0.0f,0.0f,0.0f),
+                        glm::vec3(0.0f,1.0f,0.0f));
+    glm::mat4 projection;
+    projection = glm::perspective(glm::radians(45.0f),4.0f/3.0f,0.1f,100.0f);\
+
+    //相机设置
+    glm::vec3 cameraPos = glm::vec3(0.0f,0.0f,3.0f);
+    glm::vec3 cameraTarget = glm::vec3(0.0f,0.0f,0.0f);
+    glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
+    glm::vec3 up = glm::vec3(0.0f,1.0f,0.0f);
+    glm::vec3 cameraRight = glm::normalize(glm::cross(up,cameraDirection));
+    glm::vec3 cameraUp = glm::cross(cameraDirection,cameraRight);
+    float lastFrameTime = (float)glfwGetTime();
 
     //加载图片的时候反转y轴
     stbi_set_flip_vertically_on_load(true);
@@ -130,26 +197,18 @@ int main(){
     glBindBuffer(GL_ARRAY_BUFFER,VBO);
     glBufferData(GL_ARRAY_BUFFER,sizeof(vertices),vertices,GL_STATIC_DRAW);
 
-    unsigned int EBO;
-    glGenBuffers(1,&EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(indices), indices, GL_STATIC_DRAW);
-
     //解析缓存里的数据，告诉openGL如何解析顶点数据
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)0);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,5*sizeof(float),(void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)(3*sizeof(float)));
+    glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,5*sizeof(float),(void*)(3*sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,8*sizeof(float), (void*)(6*sizeof(float)));
-    glEnableVertexAttribArray(2);
 
     std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");
     std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
     Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
-    myShader.use();
-    //手动设置或者使用写好的方法设置
-    glUniform1i(glGetUniformLocation(myShader.ID,"texture1"),0);
-    myShader.setInt("texture2",1);
+
+    glEnable(GL_DEPTH_TEST);
+
 
     while(!glfwWindowShouldClose(window)){
         processInput(window);
@@ -157,8 +216,16 @@ int main(){
         //清楚屏幕后用什么颜色代替
         glClearColor(0.3f,0.4f,0.5f,1.0f);
         //清空颜色缓冲位
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
+        //设置要用的shader
+        myShader.use();
+        //手动设置或者使用写好的方法设置
+        glUniform1i(glGetUniformLocation(myShader.ID,"texture1"),0);
+        myShader.setInt("texture2",1);
+        myShader.setMat4("view",view);
+        myShader.setMat4("projection",projection);
+        
         //使用shader和纹理
         myShader.use();
         glActiveTexture(GL_TEXTURE0);
@@ -167,8 +234,17 @@ int main(){
         glBindTexture(GL_TEXTURE_2D,texture2);
 
         glBindVertexArray(VAO);
-        //---画三角形---
-        glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,0);
+        
+        //---画三角形--- 画10个
+        for(unsigned int i = 0; i <10 ; i++){
+            //使用model之前更新
+            glm::mat4 model = glm::mat4(1.0f); //model得在这里初始化，每次都得初始化，不然会叠加
+            model = glm::translate(model,cubePositions[i]);
+            model = glm::rotate(model,glm::radians(20.0f*i),glm::vec3(1.0f,0.0f,0.0f));
+            model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+            myShader.setMat4("model",model);
+            glDrawArrays(GL_TRIANGLES,0,36);
+        }
 
         //双缓冲，交换颜色缓冲
         glfwSwapBuffers(window);
