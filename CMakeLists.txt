@@ -19,6 +19,7 @@ add_executable(app
     src/glad.c
     src/Shader.cpp
     src/stb_image.cpp
+    src/Camera.cpp
 )
 
 target_include_directories(app PRIVATE

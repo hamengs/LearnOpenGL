@@ -11,6 +11,15 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.h"
 #include "stb_image.h"
+#include "Camera.h"
+
+//相机设置全局变量
+Camera camera(glm::vec3(0.0f,0.0f,3.0f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
+float lastX = 400.0f;
+float lastY = 300.0f;
+bool firstMouse = true;
+float deltaTime = 0.0f; //当前帧与上一帧的时间差
+float lastFrameTime = 0.0f; //上一帧的时间
 
 static std::string resourcePath(const std::string& relativePath)
 {
@@ -23,16 +32,43 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height){
 }
 
 //处理输入，按esc退出
-void processInput(GLFWwindow* window){
+void processInput(GLFWwindow* window, float deltaTime){
     if(glfwGetKey(window,GLFW_KEY_ESCAPE)==GLFW_PRESS){
         glfwSetWindowShouldClose(window,true);
     }
-    if(glfwGetKey(window,GLFW_KEY_R)==GLFW_PRESS){
-        std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");
-        std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
-        Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
-        myShader.use();
+
+    if(glfwGetKey(window,GLFW_KEY_S)==GLFW_PRESS){
+        camera.ProcessKeyboard(deltaTime,Camera_Movement::BACKWARD);
     }
+    if(glfwGetKey(window,GLFW_KEY_W)==GLFW_PRESS){
+        camera.ProcessKeyboard(deltaTime,Camera_Movement::FORWARD);
+    }
+    if(glfwGetKey(window,GLFW_KEY_A)==GLFW_PRESS){
+        camera.ProcessKeyboard(deltaTime,Camera_Movement::LEFT);
+    }
+    if(glfwGetKey(window,GLFW_KEY_D)==GLFW_PRESS){
+        camera.ProcessKeyboard(deltaTime,Camera_Movement::RIGHT);
+    }
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos){
+    if(firstMouse){
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; //注意这里是相反的，因为y坐标是从底部往顶部依次减小的
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset,yoffset);
+
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
+    camera.ProcessMouseScroll(yoffset);
 }
 
 int main(){
@@ -64,6 +100,10 @@ int main(){
     glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
     //设置窗口大小
     glViewport(0,0,800,600);
+
+    glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window,mouse_callback);
+    glfwSetScrollCallback(window,scroll_callback);
 
     glm::vec3 cubePositions[] = {
       glm::vec3( 0.0f,  0.0f,  0.0f), 
@@ -121,31 +161,6 @@ int main(){
     -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
-
-    unsigned int indices[] = {
-        // 注意索引从0开始! 
-        // 此例的索引(0,1,2,3)就是顶点数组vertices的下标，
-        // 这样可以由下标代表顶点组合成矩形
-        0, 1, 2, // 第一个三角形
-        0, 2, 3, // 第二个三角形
-    };
-    glm::mat4 model;
-    float radius = 10.0f;
-    glm::mat4 view;
-    view = glm::lookAt(glm::vec3(0.0f,0.0f,3.0f),
-                        glm::vec3(0.0f,0.0f,0.0f),
-                        glm::vec3(0.0f,1.0f,0.0f));
-    glm::mat4 projection;
-    projection = glm::perspective(glm::radians(45.0f),4.0f/3.0f,0.1f,100.0f);\
-
-    //相机设置
-    glm::vec3 cameraPos = glm::vec3(0.0f,0.0f,3.0f);
-    glm::vec3 cameraTarget = glm::vec3(0.0f,0.0f,0.0f);
-    glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
-    glm::vec3 up = glm::vec3(0.0f,1.0f,0.0f);
-    glm::vec3 cameraRight = glm::normalize(glm::cross(up,cameraDirection));
-    glm::vec3 cameraUp = glm::cross(cameraDirection,cameraRight);
-    float lastFrameTime = (float)glfwGetTime();
 
     //加载图片的时候反转y轴
     stbi_set_flip_vertically_on_load(true);
@@ -211,7 +226,11 @@ int main(){
 
 
     while(!glfwWindowShouldClose(window)){
-        processInput(window);
+        float currentFrameTime = glfwGetTime();
+        deltaTime = currentFrameTime - lastFrameTime;
+        lastFrameTime = currentFrameTime;
+        
+        processInput(window,deltaTime);
 
         //清楚屏幕后用什么颜色代替
         glClearColor(0.3f,0.4f,0.5f,1.0f);
@@ -223,8 +242,6 @@ int main(){
         //手动设置或者使用写好的方法设置
         glUniform1i(glGetUniformLocation(myShader.ID,"texture1"),0);
         myShader.setInt("texture2",1);
-        myShader.setMat4("view",view);
-        myShader.setMat4("projection",projection);
         
         //使用shader和纹理
         myShader.use();
@@ -234,7 +251,13 @@ int main(){
         glBindTexture(GL_TEXTURE_2D,texture2);
 
         glBindVertexArray(VAO);
-        
+
+        myShader.setMat4("view",camera.GetViewMatrix());
+
+        glm::mat4 projection;
+        projection = glm::perspective(glm::radians(camera.Fov),4.0f/3.0f,0.1f,100.0f);
+        myShader.setMat4("projection",projection);
+
         //---画三角形--- 画10个
         for(unsigned int i = 0; i <10 ; i++){
             //使用model之前更新
