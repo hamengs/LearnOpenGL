@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(LearnOpenGL LANGUAGES C CXX)
 
+add_definitions(-DPROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -13,6 +15,13 @@ if(NOT glfw3_FOUND)
         message(FATAL_ERROR "GLFW not found. On macOS, install it with: brew install glfw")
     endif()
 endif()
+
+find_library(ASSIMP_LIBRARY NAMES assimp libassimp.dll.a PATHS "${CMAKE_SOURCE_DIR}/lib")
+
+if(NOT ASSIMP_LIBRARY)
+    message(FATAL_ERROR "Assimp not found")
+endif()
+
 
 add_executable(app
     src/HelloWorld.cpp
@@ -30,6 +39,9 @@ target_include_directories(app PRIVATE
 target_compile_definitions(app PRIVATE
     PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
+
+
+target_link_libraries(app PRIVATE ${ASSIMP_LIBRARY})
 
 if(glfw3_FOUND)
     target_link_libraries(app PRIVATE glfw OpenGL::GL)
