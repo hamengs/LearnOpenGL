@@ -130,87 +130,53 @@ int main(){
     };
 
     float vertices[] = {
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+        0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+        0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
 
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+        0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
 
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
 
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+        0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+        0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
 
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+        0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
     };
 
-    //加载图片的时候反转y轴
-    stbi_set_flip_vertically_on_load(true);
-    //加载图片
-    int width1,height1,nrChannels1;
-    std::string texturePath1 = resourcePath("src/texture/texture_brick.jpg");
-    unsigned char *data1 = stbi_load(texturePath1.c_str(),&width1,&height1,&nrChannels1,0);
-
-    //加载图片
-    int width2,height2,nrChannels2;
-    std::string texturePath2 = resourcePath("src/texture/awesomeface.png");
-    unsigned char *data2 = stbi_load(texturePath2.c_str(),&width2,&height2,&nrChannels2,0);
-
-    //创建纹理
-    unsigned int texture1;
-    glGenTextures(1,&texture1);
-    glBindTexture(GL_TEXTURE_2D,texture1);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,width1,height1,0,GL_RGB,GL_UNSIGNED_BYTE,data1);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    //设置纹理参数
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    unsigned int texture2;
-    glGenTextures(1,&texture2);
-    glBindTexture(GL_TEXTURE_2D,texture2);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,width2,height2,0,GL_RGBA,GL_UNSIGNED_BYTE,data2);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    //同理设置纹理参数
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    //记得释放图像资源
-    stbi_image_free(data1);
-    stbi_image_free(data2);
+    glm::vec3 lightPos(1.2f,1.0f,2.0f);
+    glm::mat4 lightModel = glm::mat4(1.0f);
+    lightModel = glm::translate(lightModel,lightPos);
+    lightModel = glm::scale(lightModel,glm::vec3(0.5f));
 
     //创建VAO
     unsigned int VAO;
@@ -224,14 +190,22 @@ int main(){
     glBufferData(GL_ARRAY_BUFFER,sizeof(vertices),vertices,GL_STATIC_DRAW);
 
     //解析缓存里的数据，告诉openGL如何解析顶点数据
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,5*sizeof(float),(void*)0);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,5*sizeof(float),(void*)(3*sizeof(float)));
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(3*sizeof(float)));
     glEnableVertexAttribArray(1);
+
+    unsigned int lightVAO;
+    glGenVertexArrays(1,&lightVAO);
+    glBindVertexArray(lightVAO);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)0);
+    glEnableVertexAttribArray(0);
 
     std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");
     std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
+    std::string lightFragmentShaderPath = resourcePath("src/fragmentShader/lightFragmentShader.fs");
     Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+    Shader lightShader(vertexShaderPath.c_str(), lightFragmentShaderPath.c_str());
 
     glEnable(GL_DEPTH_TEST);
 
@@ -250,17 +224,12 @@ int main(){
 
         //设置要用的shader
         myShader.use();
-        //手动设置或者使用写好的方法设置
-        glUniform1i(glGetUniformLocation(myShader.ID,"texture1"),0);
-        myShader.setInt("texture2",1);
+        myShader.setVec3("objectColor",1.0f,0.5f,0.31f);
+        myShader.setVec3("lightColor",1.0f,1.0f,1.0f);
+        myShader.setVec3("lightPos",lightPos.x,lightPos.y,lightPos.z);
+        myShader.setVec3("ambientLight",1.0f,0.5f,0.5f);
+        myShader.setVec3("viewPos",camera.Position.x,camera.Position.y,camera.Position.z);
         
-        //使用shader和纹理
-        myShader.use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D,texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D,texture2);
-
         glBindVertexArray(VAO);
 
         myShader.setMat4("view",camera.GetViewMatrix());
@@ -270,7 +239,7 @@ int main(){
         myShader.setMat4("projection",projection);
 
         //---画三角形--- 画10个
-        for(unsigned int i = 0; i <10 ; i++){
+        for(unsigned int i = 0; i <1 ; i++){
             //使用model之前更新
             glm::mat4 model = glm::mat4(1.0f); //model得在这里初始化，每次都得初始化，不然会叠加
             model = glm::translate(model,cubePositions[i]);
@@ -279,6 +248,14 @@ int main(){
             myShader.setMat4("model",model);
             glDrawArrays(GL_TRIANGLES,0,36);
         }
+
+        lightShader.use();
+        lightShader.setMat4("model", lightModel);
+        lightShader.setMat4("view",camera.GetViewMatrix());
+        lightShader.setMat4("projection",projection);
+        glBindVertexArray(lightVAO);
+        glDrawArrays(GL_TRIANGLES,0,36);
+
 
         //双缓冲，交换颜色缓冲
         glfwSwapBuffers(window);
