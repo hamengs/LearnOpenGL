@@ -13,6 +13,17 @@
 #include "stb_image.h"
 #include "Camera.h"
 
+struct Vertex{
+    glm::vec3 Position;
+    glm::vec3 Normal;
+    glm::vec2 TexCoords;
+};
+
+struct Texture{
+    unsigned int id;
+    std::string type;
+};
+
 //相机设置全局变量
 Camera camera(glm::vec3(0.0f,0.0f,3.0f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
 float lastX = 400.0f;
