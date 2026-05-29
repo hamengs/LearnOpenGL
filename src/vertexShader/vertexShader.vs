@@ -6,13 +6,12 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-uniform vec3 lightPos;
-uniform vec3 viewPos;
+out vec3 vPos;
+out vec3 vNormal;
 
 void main(){
-    vec3 viewDirection = viewPos-aPos;
-    vec3 halfVector = normalize(viewDirection + aNormal);
-    vec3 lightDirection = lightPos - aPos;
-    float diffusion = max(dot(lightDirection,aNormal),0);
+    vPos = vec3(model * vec4(aPos,1.0f));
+    mat3 normalMatrix = mat3(transpose(inverse(model)));
+    vNormal = normalize(normalMatrix * aNormal);
     gl_Position = projection * view * model * vec4(aPos,1.0f);
 }

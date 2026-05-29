@@ -173,10 +173,10 @@ int main(){
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
     };
 
-    glm::vec3 lightPos(1.2f,1.0f,2.0f);
+    glm::vec3 lightPos(1.2f,1.0f,-1.0f);
     glm::mat4 lightModel = glm::mat4(1.0f);
     lightModel = glm::translate(lightModel,lightPos);
-    lightModel = glm::scale(lightModel,glm::vec3(0.5f));
+    lightModel = glm::scale(lightModel,glm::vec3(0.2f));
 
     //创建VAO
     unsigned int VAO;
@@ -227,7 +227,7 @@ int main(){
         myShader.setVec3("objectColor",1.0f,0.5f,0.31f);
         myShader.setVec3("lightColor",1.0f,1.0f,1.0f);
         myShader.setVec3("lightPos",lightPos.x,lightPos.y,lightPos.z);
-        myShader.setVec3("ambientLight",1.0f,0.5f,0.5f);
+        myShader.setVec3("ambientLight",0.1f,0.1f,0.1f);
         myShader.setVec3("viewPos",camera.Position.x,camera.Position.y,camera.Position.z);
         
         glBindVertexArray(VAO);
@@ -244,7 +244,7 @@ int main(){
             glm::mat4 model = glm::mat4(1.0f); //model得在这里初始化，每次都得初始化，不然会叠加
             model = glm::translate(model,cubePositions[i]);
             model = glm::rotate(model,glm::radians(20.0f*i),glm::vec3(1.0f,0.0f,0.0f));
-            model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+            //model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
             myShader.setMat4("model",model);
             glDrawArrays(GL_TRIANGLES,0,36);
         }
