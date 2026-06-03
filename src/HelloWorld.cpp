@@ -24,6 +24,13 @@ struct Texture{
     std::string type;
 };
 
+struct ObjectMaterial{
+    glm::vec3 Ambient;
+    glm::vec3 Diffuse;
+    glm::vec3 Specular;
+    float Shininess;
+};
+
 //相机设置全局变量
 Camera camera(glm::vec3(0.0f,0.0f,3.0f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
 float lastX = 400.0f;
@@ -129,54 +136,107 @@ int main(){
       glm::vec3(-1.3f,  1.0f, -1.5f)  
     };
 
-    float vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
-        0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
-        0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
-
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-        0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-        0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-        0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-
-        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-        0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-        0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-        0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-        0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-        0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+    ObjectMaterial materials[] = {
+        {glm::vec3(1.0f, 0.5f, 0.31f), glm::vec3(1.0f, 0.5f, 0.31f), glm::vec3(0.5f, 0.5f, 0.5f), 32.0f},
+        {glm::vec3(0.1f, 0.18f, 0.3f), glm::vec3(0.0f, 0.45f, 0.9f), glm::vec3(0.8f, 0.9f, 1.0f), 96.0f},
+        {glm::vec3(0.25f, 0.18f, 0.08f), glm::vec3(0.95f, 0.65f, 0.2f), glm::vec3(1.0f, 0.86f, 0.45f), 64.0f},
+        {glm::vec3(0.08f, 0.22f, 0.12f), glm::vec3(0.1f, 0.65f, 0.28f), glm::vec3(0.2f, 0.35f, 0.2f), 12.0f},
+        {glm::vec3(0.22f, 0.08f, 0.1f), glm::vec3(0.8f, 0.1f, 0.18f), glm::vec3(0.9f, 0.25f, 0.3f), 24.0f},
+        {glm::vec3(0.18f, 0.16f, 0.22f), glm::vec3(0.48f, 0.38f, 0.82f), glm::vec3(0.9f, 0.85f, 1.0f), 128.0f},
+        {glm::vec3(0.22f, 0.2f, 0.18f), glm::vec3(0.55f, 0.52f, 0.48f), glm::vec3(0.15f, 0.15f, 0.15f), 8.0f},
+        {glm::vec3(0.05f, 0.18f, 0.18f), glm::vec3(0.0f, 0.8f, 0.78f), glm::vec3(0.65f, 1.0f, 0.95f), 48.0f},
+        {glm::vec3(0.28f, 0.12f, 0.25f), glm::vec3(0.95f, 0.22f, 0.75f), glm::vec3(1.0f, 0.7f, 0.95f), 80.0f},
+        {glm::vec3(0.16f, 0.2f, 0.08f), glm::vec3(0.55f, 0.72f, 0.16f), glm::vec3(0.5f, 0.6f, 0.25f), 20.0f}
     };
 
-    glm::vec3 lightPos(1.2f,1.0f,-1.0f);
+    float vertices[] = {
+        // positions          // normals           // texture coords
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+        0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+        0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+
+        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+        0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
+        0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+        0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
+        0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
+    };
+
+    glm::vec3 lightDirection(1.2f,1.0f,2.0f);
     glm::mat4 lightModel = glm::mat4(1.0f);
-    lightModel = glm::translate(lightModel,lightPos);
-    lightModel = glm::scale(lightModel,glm::vec3(0.2f));
+    //lightModel = glm::translate(lightModel,lightPos);
+    //lightModel = glm::scale(lightModel,glm::vec3(0.2f,0.2f,0.2f));
+    
+    //加载纹理
+    Texture texture0;
+    glGenTextures(1,&texture0.id);
+    int width1,height1,nrChannels1;
+    unsigned char* data1 = stbi_load(resourcePath("src/texture/container2.png").c_str(),&width1,&height1,&nrChannels1,0);
+    glBindTexture(GL_TEXTURE_2D,texture0.id);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    GLenum format1 = GL_RGB;
+    if(nrChannels1 == 3) format1 = GL_RGB;
+    else if (nrChannels1 == 4) format1 = GL_RGBA;
+    glTexImage2D(GL_TEXTURE_2D,0,format1,width1,height1,0,format1,GL_UNSIGNED_BYTE,data1);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    if(data1==NULL){
+        std::cout<<"text not loaded"<<std::endl;
+    }
+    stbi_image_free(data1);
+
+    Texture texture1;
+    glGenTextures(1,&texture1.id);
+    int width2,height2,nrChannels2;
+    unsigned char* data2 = stbi_load(resourcePath("src/texture/container2_specular.png").c_str(),&width2,&height2,&nrChannels2,0);
+    glBindTexture(GL_TEXTURE_2D,texture1.id);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    GLenum format2 = GL_RGB;
+    if(nrChannels2 == 3) format2 = GL_RGB;
+    else if (nrChannels2 == 4) format2 = GL_RGBA;
+    glTexImage2D(GL_TEXTURE_2D,0,format2,width2,height2,0,format2,GL_UNSIGNED_BYTE,data2);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    if(data2==NULL){
+        std::cout<<"text not loaded"<<std::endl;
+    }
+    stbi_image_free(data2);
 
     //创建VAO
     unsigned int VAO;
@@ -190,15 +250,17 @@ int main(){
     glBufferData(GL_ARRAY_BUFFER,sizeof(vertices),vertices,GL_STATIC_DRAW);
 
     //解析缓存里的数据，告诉openGL如何解析顶点数据
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)0);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(3*sizeof(float)));
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)(3*sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)(6*sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     unsigned int lightVAO;
     glGenVertexArrays(1,&lightVAO);
     glBindVertexArray(lightVAO);
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)0);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)0);
     glEnableVertexAttribArray(0);
 
     std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");
@@ -224,11 +286,20 @@ int main(){
 
         //设置要用的shader
         myShader.use();
-        myShader.setVec3("objectColor",1.0f,0.5f,0.31f);
-        myShader.setVec3("lightColor",1.0f,1.0f,1.0f);
-        myShader.setVec3("lightPos",lightPos.x,lightPos.y,lightPos.z);
-        myShader.setVec3("ambientLight",0.1f,0.1f,0.1f);
-        myShader.setVec3("viewPos",camera.Position.x,camera.Position.y,camera.Position.z);
+        //绑定纹理到shader
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D,texture0.id);
+        myShader.setInt("material.Diffuse",0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D,texture1.id);
+        myShader.setInt("material.Specular",1);
+        // Light
+        myShader.setVec3("light.Direction", lightDirection.x, lightDirection.y, lightDirection.z);
+        myShader.setVec3("light.Direction", lightDirection.x, lightDirection.y, lightDirection.z);
+        myShader.setVec3("light.Ambient",  0.2f, 0.2f, 0.2f);
+        myShader.setVec3("light.Diffuse",  0.8f, 0.8f, 0.8f);
+        myShader.setVec3("light.Specular", 1.0f, 1.0f, 1.0f);
+        myShader.setVec3("viewPos", camera.Position.x, camera.Position.y, camera.Position.z);
         
         glBindVertexArray(VAO);
 
@@ -239,16 +310,23 @@ int main(){
         myShader.setMat4("projection",projection);
 
         //---画三角形--- 画10个
-        for(unsigned int i = 0; i <1 ; i++){
+        unsigned int objectCount = sizeof(cubePositions) / sizeof(cubePositions[0]);
+        for(unsigned int i = 0; i < objectCount ; i++){
+            ObjectMaterial material = materials[i];
+            myShader.setVec3("material.Ambient", material.Ambient.x, material.Ambient.y, material.Ambient.z);
+            myShader.setVec3("material.Diffuse", material.Diffuse.x, material.Diffuse.y, material.Diffuse.z);
+            myShader.setVec3("material.Specular", material.Specular.x, material.Specular.y, material.Specular.z);
+            myShader.setFloat("material.Shininess", material.Shininess);
             //使用model之前更新
             glm::mat4 model = glm::mat4(1.0f); //model得在这里初始化，每次都得初始化，不然会叠加
             model = glm::translate(model,cubePositions[i]);
-            model = glm::rotate(model,glm::radians(20.0f*i),glm::vec3(1.0f,0.0f,0.0f));
+            float angle = 20.0f * i;
+            model = glm::rotate(model,glm::radians(angle),glm::vec3(1.0f,0.3f,0.5f));
             //model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
             myShader.setMat4("model",model);
             glDrawArrays(GL_TRIANGLES,0,36);
         }
-
+        
         lightShader.use();
         lightShader.setMat4("model", lightModel);
         lightShader.setMat4("view",camera.GetViewMatrix());

@@ -17,17 +17,18 @@ glm::mat4 Camera::GetViewMatrix(){
 }
 
 void Camera::ProcessKeyboard(float deltaTime, Camera_Movement direction){
+    float speed = 2.0f;
     if(direction == Camera_Movement::FORWARD){
-        Position += Front * deltaTime;
+        Position += Front * speed * deltaTime;
     }
     if(direction == Camera_Movement::BACKWARD){
-        Position -= Front * deltaTime;
+        Position -= Front * speed * deltaTime;
     }
     if(direction == Camera_Movement::LEFT){
-        Position -= Right * deltaTime;
+        Position -= Right * speed * deltaTime;
     }
     if(direction == Camera_Movement::RIGHT){
-        Position += Right * deltaTime;
+        Position += Right * speed * deltaTime;
     }
 }
 
