@@ -30,8 +30,9 @@ uniform vec3 viewPos;
 
 void main(){
     vec3 norm = normalize(vNormal);
-    vec3 lightDirection = normalize(-light.Direction);
+    vec3 lightDirection = normalize(light.Position-vPos);
     vec3 viewDirection = normalize(viewPos-vPos);
+    float theta = dot(normalize(light.Direction),normalize(-lightDirection));
 
     //距离衰减(平行光不需要)
     float r = distance(light.Position,vPos);
@@ -42,15 +43,21 @@ void main(){
 
     //漫反射
     float diff = max(dot(lightDirection,norm),0);
-    vec3 diffuse = light.Diffuse * diff * vec3(texture(material.Diffuse,TexCoords)) ;
+    vec3 diffuse = light.Diffuse * diff * vec3(texture(material.Diffuse,TexCoords))*attenuation;
 
     //镜面反射
     vec3 halfVector = normalize(viewDirection + lightDirection);
     vec3 specular = vec3(0.0f);
-    if(diff>0.0f){
-        specular = light.Specular * vec3(texture(material.Specular,TexCoords))*pow(max(dot(halfVector,norm),0),material.Shininess);
+    if(diff > 0.0f){
+        specular = light.Specular * vec3(texture(material.Specular,TexCoords))*pow(max(dot(halfVector,norm),0),material.Shininess)*attenuation;
     }
 
-    vec3 result =ambient +diffuse + specular;
+    vec3 result = vec3(0.0f);
+    if(theta>light.CutOff){
+        result = ambient + diffuse + specular;
+    }
+    else{
+        result = ambient;
+    }
     FragColor = vec4(result,1.0f);
 }

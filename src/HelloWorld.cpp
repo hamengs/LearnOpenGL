@@ -195,6 +195,7 @@ int main(){
     };
 
     glm::vec3 lightDirection(1.2f,1.0f,2.0f);
+    glm::vec3 lightPosition(1.2f,1.0f,2.0f);
     glm::mat4 lightModel = glm::mat4(1.0f);
     //lightModel = glm::translate(lightModel,lightPos);
     //lightModel = glm::scale(lightModel,glm::vec3(0.2f,0.2f,0.2f));
@@ -294,8 +295,9 @@ int main(){
         glBindTexture(GL_TEXTURE_2D,texture1.id);
         myShader.setInt("material.Specular",1);
         // Light
-        myShader.setVec3("light.Direction", lightDirection.x, lightDirection.y, lightDirection.z);
-        myShader.setVec3("light.Direction", lightDirection.x, lightDirection.y, lightDirection.z);
+        myShader.setVec3("light.Position", camera.Position.x, camera.Position.y, camera.Position.z);
+        myShader.setVec3("light.Direction", camera.Front.x, camera.Front.y, camera.Front.z);
+        myShader.setFloat("light.CutOff",glm::cos(glm::radians(12.5f)));
         myShader.setVec3("light.Ambient",  0.2f, 0.2f, 0.2f);
         myShader.setVec3("light.Diffuse",  0.8f, 0.8f, 0.8f);
         myShader.setVec3("light.Specular", 1.0f, 1.0f, 1.0f);
