@@ -29,6 +29,8 @@ add_executable(app
     src/Shader.cpp
     src/stb_image.cpp
     src/Camera.cpp
+    src/Model.cpp
+    src/Mesh.cpp
 )
 
 target_include_directories(app PRIVATE
