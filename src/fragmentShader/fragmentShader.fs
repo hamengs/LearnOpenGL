@@ -2,11 +2,8 @@
 
 struct Material{
     sampler2D Diffuse;
-    sampler2D Specular;
-    float Shininess; 
+    float Shininess;
 };
-
-uniform Material material;
 
 struct DirLight{
     vec3 Direction;
@@ -22,7 +19,7 @@ struct PointLight{
     vec3 Specular;
     float Constant;
     float Linear;
-    float Qudratic;
+    float Quadratic;
 };
 
 struct SpotLight{
@@ -35,9 +32,11 @@ struct SpotLight{
     float OuterCutOff;
 };
 
+uniform Material material;
 uniform DirLight dirLight;
 uniform PointLight pointLights[4];
 uniform SpotLight spotLight;
+uniform vec3 viewPos;
 
 in vec3 fragPos;
 in vec3 vNormal;
@@ -45,94 +44,71 @@ in vec2 TexCoords;
 
 out vec4 FragColor;
 
-uniform vec3 viewPos;
+float near = 0.1f;
+float far = 100.0f;
 
-vec3 CalcDirLight(DirLight dirLight, vec3 normal, vec3 viewDir){
-    //环境光
-    vec3 ambient = dirLight.Ambient * vec3(texture(material.Diffuse,TexCoords));
+vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 baseColor){
+    vec3 lightDir = normalize(-light.Direction);
+    vec3 halfVector = normalize(viewDir + lightDir);
 
-    //漫反射
-    float diff = max(dot(dirLight.Direction,normal),0);
-    vec3 diffuse = dirLight.Diffuse * diff * vec3(texture(material.Diffuse,TexCoords));
+    float diff = max(dot(normal, lightDir), 0.0);
+    float spec = diff > 0.0 ? pow(max(dot(normal, halfVector), 0.0), material.Shininess) : 0.0;
 
-    //镜面反射
-    vec3 halfVector = normalize(viewDir+ dirLight.Direction);
-    vec3 specular = vec3(0.0f);
-    if(diff > 0.0f){
-        specular = dirLight.Specular * vec3(texture(material.Specular,TexCoords))*pow(max(dot(halfVector,normal),0),material.Shininess);
-    }
-
-    vec3 result = vec3(0.0f);
-    result = ambient + diffuse + specular;
-
-    return result;
+    vec3 ambient = light.Ambient * baseColor;
+    vec3 diffuse = light.Diffuse * diff * baseColor;
+    vec3 specular = light.Specular * spec * 0.2;
+    return ambient + diffuse + specular;
 }
 
-vec3 CalcPointLight(PointLight pointLight, vec3 normal, vec3 viewDir, vec3 fragPos){
-    //距离衰减(平行光不需要)
-    vec3 lightDir = normalize(pointLight.Position-fragPos);
-    float r = distance(pointLight.Position,fragPos);
-    float attenuation = 1.0f / (pointLight.Constant + pointLight.Linear * r + pointLight.Qudratic * r * r);
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 viewDir, vec3 baseColor){
+    vec3 lightDir = normalize(light.Position - fragPos);
+    vec3 halfVector = normalize(viewDir + lightDir);
 
-    //环境光
-    vec3 ambient = pointLight.Ambient * vec3(texture(material.Diffuse,TexCoords));
+    float distanceToLight = distance(light.Position, fragPos);
+    float attenuation = 1.0 / (light.Constant + light.Linear * distanceToLight + light.Quadratic * distanceToLight * distanceToLight);
+    float diff = max(dot(normal, lightDir), 0.0);
+    float spec = diff > 0.0 ? pow(max(dot(normal, halfVector), 0.0), material.Shininess) : 0.0;
 
-    //漫反射
-    float diff = max(dot(lightDir,normal),0);
-    vec3 diffuse = pointLight.Diffuse * diff * vec3(texture(material.Diffuse,TexCoords))*attenuation;
-
-    //镜面反射
-    vec3 halfVector = normalize(viewDir+ lightDir);
-    vec3 specular = vec3(0.0f);
-    if(diff > 0.0f){
-        specular = pointLight.Specular * vec3(texture(material.Specular,TexCoords))*pow(max(dot(halfVector,normal),0),material.Shininess)*attenuation;
-    }
-
-    vec3 result = vec3(0.0f);
-    result = ambient + diffuse + specular;
-
-    return result;
+    vec3 ambient = light.Ambient * baseColor;
+    vec3 diffuse = light.Diffuse * diff * baseColor;
+    vec3 specular = light.Specular * spec * 0.2;
+    return (ambient + diffuse + specular) * attenuation;
 }
 
-vec3 CalcSpotLight(SpotLight spotLight, vec3 normal, vec3 viewDir, vec3 fragPos){
-    vec3 lightDirection = normalize(spotLight.Position-fragPos);
-    //光源朝向方向和光源连线方向的dot
-    float theta = dot(normalize(spotLight.Direction),normalize(-lightDirection));
-    float epsilon = spotLight.CutOff-spotLight.OuterCutOff;
-    float Intensity = clamp((theta - spotLight.OuterCutOff)/epsilon,0.0f,1.0f);
+vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 viewDir, vec3 baseColor){
+    vec3 lightDir = normalize(light.Position - fragPos);
+    vec3 halfVector = normalize(viewDir + lightDir);
 
-    //距离衰减(平行光不需要)
-    float r = distance(spotLight.Position,fragPos);
-    float attenuation = 1.0f / (1.0f + 0.09f * r + 0.032f * r * r);
+    float theta = dot(lightDir, normalize(-light.Direction));
+    float epsilon = light.CutOff - light.OuterCutOff;
+    float intensity = clamp((theta - light.OuterCutOff) / epsilon, 0.0, 1.0);
 
-    //环境光
-    vec3 ambient = spotLight.Ambient * vec3(texture(material.Diffuse,TexCoords));
+    float distanceToLight = distance(light.Position, fragPos);
+    float attenuation = 1.0 / (1.0 + 0.09 * distanceToLight + 0.032 * distanceToLight * distanceToLight);
+    float diff = max(dot(normal, lightDir), 0.0);
+    float spec = diff > 0.0 ? pow(max(dot(normal, halfVector), 0.0), material.Shininess) : 0.0;
 
-    //漫反射
-    float diff = max(dot(lightDirection,normal),0);
-    vec3 diffuse = spotLight.Diffuse * diff * vec3(texture(material.Diffuse,TexCoords))*attenuation*Intensity;
+    vec3 ambient = light.Ambient * baseColor;
+    vec3 diffuse = light.Diffuse * diff * baseColor;
+    vec3 specular = light.Specular * spec * 0.2;
+    return (ambient + diffuse + specular) * attenuation * intensity;
+}
 
-    //镜面反射
-    vec3 halfVector = normalize(viewDir+ lightDirection);
-    vec3 specular = vec3(0.0f);
-    if(diff > 0.0f){
-        specular = spotLight.Specular * vec3(texture(material.Specular,TexCoords))*pow(max(dot(halfVector,normal),0),material.Shininess)*attenuation*Intensity;
-    }
-
-    vec3 result = vec3(0.0f);
-    result = ambient + diffuse + specular;
-
-    return result;
+float LinearizeDepth(float depth){
+    float z = depth * 2.0f -1.0f;
+    return (2.0f*near*far)/(far+near-z*(far-near));
 }
 
 void main(){
-    vec3 viewDirection = normalize(viewPos-fragPos);
-    vec3 result = vec3(0.0f);
-    result += CalcDirLight(dirLight,vNormal,viewDirection);
-    for(int i = 0; i<4; i++){
-        result += CalcPointLight(pointLights[i],vNormal,viewDirection,fragPos);
-    }
-    result += CalcSpotLight(spotLight,vNormal,viewDirection,fragPos);
+    vec3 normal = normalize(vNormal);
+    vec3 viewDir = normalize(viewPos - fragPos);
+    vec3 baseColor = texture(material.Diffuse, TexCoords).rgb;
 
-    FragColor = vec4(result,1.0f);
+    vec3 result = CalcDirLight(dirLight, normal, viewDir, baseColor);
+    for(int i = 0; i < 2; i++){
+        result += CalcPointLight(pointLights[i], normal, viewDir, baseColor);
+    }
+    result += CalcSpotLight(spotLight,normal,viewDir,baseColor);
+    float depth = LinearizeDepth(gl_FragCoord.z)/25;
+    FragColor = vec4(result, 1.0f);
 }

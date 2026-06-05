@@ -11,7 +11,7 @@
 
 class Model{
     public:
-        Model(char *path){
+        Model(const std::string &path){
             loadModel(path);
         }
         void Draw(Shader shader);

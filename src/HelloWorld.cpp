@@ -12,17 +12,7 @@
 #include "Shader.h"
 #include "stb_image.h"
 #include "Camera.h"
-
-struct Vertex{
-    glm::vec3 Position;
-    glm::vec3 Normal;
-    glm::vec2 TexCoords;
-};
-
-struct Texture{
-    unsigned int id;
-    std::string type;
-};
+#include "Model.h"
 
 struct ObjectMaterial{
     glm::vec3 Ambient;
@@ -136,19 +126,6 @@ int main(){
       glm::vec3(-1.3f,  1.0f, -1.5f)  
     };
 
-    ObjectMaterial materials[] = {
-        {glm::vec3(1.0f, 0.5f, 0.31f), glm::vec3(1.0f, 0.5f, 0.31f), glm::vec3(0.5f, 0.5f, 0.5f), 32.0f},
-        {glm::vec3(0.1f, 0.18f, 0.3f), glm::vec3(0.0f, 0.45f, 0.9f), glm::vec3(0.8f, 0.9f, 1.0f), 96.0f},
-        {glm::vec3(0.25f, 0.18f, 0.08f), glm::vec3(0.95f, 0.65f, 0.2f), glm::vec3(1.0f, 0.86f, 0.45f), 64.0f},
-        {glm::vec3(0.08f, 0.22f, 0.12f), glm::vec3(0.1f, 0.65f, 0.28f), glm::vec3(0.2f, 0.35f, 0.2f), 12.0f},
-        {glm::vec3(0.22f, 0.08f, 0.1f), glm::vec3(0.8f, 0.1f, 0.18f), glm::vec3(0.9f, 0.25f, 0.3f), 24.0f},
-        {glm::vec3(0.18f, 0.16f, 0.22f), glm::vec3(0.48f, 0.38f, 0.82f), glm::vec3(0.9f, 0.85f, 1.0f), 128.0f},
-        {glm::vec3(0.22f, 0.2f, 0.18f), glm::vec3(0.55f, 0.52f, 0.48f), glm::vec3(0.15f, 0.15f, 0.15f), 8.0f},
-        {glm::vec3(0.05f, 0.18f, 0.18f), glm::vec3(0.0f, 0.8f, 0.78f), glm::vec3(0.65f, 1.0f, 0.95f), 48.0f},
-        {glm::vec3(0.28f, 0.12f, 0.25f), glm::vec3(0.95f, 0.22f, 0.75f), glm::vec3(1.0f, 0.7f, 0.95f), 80.0f},
-        {glm::vec3(0.16f, 0.2f, 0.08f), glm::vec3(0.55f, 0.72f, 0.16f), glm::vec3(0.5f, 0.6f, 0.25f), 20.0f}
-    };
-
     float vertices[] = {
         // positions          // normals           // texture coords
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
@@ -202,45 +179,6 @@ int main(){
         glm::vec3( 0.0f,  0.0f, -3.0f)
     };
     glm::mat4 lightModel = glm::mat4(1.0f);
-    
-    //加载纹理
-    Texture texture0;
-    glGenTextures(1,&texture0.id);
-    int width1,height1,nrChannels1;
-    unsigned char* data1 = stbi_load(resourcePath("src/texture/container2.png").c_str(),&width1,&height1,&nrChannels1,0);
-    glBindTexture(GL_TEXTURE_2D,texture0.id);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    GLenum format1 = GL_RGB;
-    if(nrChannels1 == 3) format1 = GL_RGB;
-    else if (nrChannels1 == 4) format1 = GL_RGBA;
-    glTexImage2D(GL_TEXTURE_2D,0,format1,width1,height1,0,format1,GL_UNSIGNED_BYTE,data1);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    if(data1==NULL){
-        std::cout<<"text not loaded"<<std::endl;
-    }
-    stbi_image_free(data1);
-
-    Texture texture1;
-    glGenTextures(1,&texture1.id);
-    int width2,height2,nrChannels2;
-    unsigned char* data2 = stbi_load(resourcePath("src/texture/container2_specular.png").c_str(),&width2,&height2,&nrChannels2,0);
-    glBindTexture(GL_TEXTURE_2D,texture1.id);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    GLenum format2 = GL_RGB;
-    if(nrChannels2 == 3) format2 = GL_RGB;
-    else if (nrChannels2 == 4) format2 = GL_RGBA;
-    glTexImage2D(GL_TEXTURE_2D,0,format2,width2,height2,0,format2,GL_UNSIGNED_BYTE,data2);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    if(data2==NULL){
-        std::cout<<"text not loaded"<<std::endl;
-    }
-    stbi_image_free(data2);
 
     //创建VAO
     unsigned int VAO;
@@ -267,13 +205,21 @@ int main(){
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)0);
     glEnableVertexAttribArray(0);
 
+    //----------------模型创建-------------------------
+    Model croissant(resourcePath("src/models/croissant_4k.gltf/croissant_4k.gltf"));
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::scale(model,glm::vec3(10.0f));
+    
     std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");
     std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
     std::string lightFragmentShaderPath = resourcePath("src/fragmentShader/lightFragmentShader.fs");
+    std::string singleColorShaderPath = resourcePath("src/fragmentShader/singleColorShader.fs");
     Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
     Shader lightShader(vertexShaderPath.c_str(), lightFragmentShaderPath.c_str());
+    Shader singleColorShader(vertexShaderPath.c_str(),singleColorShaderPath.c_str());
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_STENCIL_TEST);
 
 
     while(!glfwWindowShouldClose(window)){
@@ -286,17 +232,10 @@ int main(){
         //清楚屏幕后用什么颜色代替
         glClearColor(0.3f,0.4f,0.5f,1.0f);
         //清空颜色缓冲位
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 
         //设置要用的shader
         myShader.use();
-        //绑定纹理到shader
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D,texture0.id);
-        myShader.setInt("material.Diffuse",0);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D,texture1.id);
-        myShader.setInt("material.Specular",1);
         // Light
         //平行光
         myShader.setVec3("dirLight.Direction", -0.2f, -1.0f, -0.3f);
@@ -314,7 +253,7 @@ int main(){
         
             myShader.setFloat(base + ".Constant", 1.0f);
             myShader.setFloat(base + ".Linear",   0.09f);
-            myShader.setFloat(base + ".Qudratic", 0.032f);
+            myShader.setFloat(base + ".Quadratic", 0.032f);
         }
         //聚光
         myShader.setVec3("spotLight.Position", camera.Position.x, camera.Position.y, camera.Position.z);
@@ -326,32 +265,22 @@ int main(){
         myShader.setVec3("spotLight.Specular", 1.0f, 1.0f, 1.0f);
         //设置相机
         myShader.setVec3("viewPos", camera.Position.x, camera.Position.y, camera.Position.z);
+        myShader.setFloat("material.Shininess", 32.0f);
         
         glBindVertexArray(VAO);
-
+        
+        myShader.setMat4("model", model);
         myShader.setMat4("view",camera.GetViewMatrix());
 
         glm::mat4 projection;
         projection = glm::perspective(glm::radians(camera.Fov),4.0f/3.0f,0.1f,100.0f);
         myShader.setMat4("projection",projection);
 
-        //---画箱子，选择三角形--- 画10个
-        unsigned int objectCount = sizeof(cubePositions) / sizeof(cubePositions[0]);
-        for(unsigned int i = 0; i < objectCount ; i++){
-            ObjectMaterial material = materials[i];
-            myShader.setVec3("material.Ambient", material.Ambient.x, material.Ambient.y, material.Ambient.z);
-            myShader.setVec3("material.Diffuse", material.Diffuse.x, material.Diffuse.y, material.Diffuse.z);
-            myShader.setVec3("material.Specular", material.Specular.x, material.Specular.y, material.Specular.z);
-            myShader.setFloat("material.Shininess", material.Shininess);
-            //使用model之前更新
-            glm::mat4 model = glm::mat4(1.0f); //model得在这里初始化，每次都得初始化，不然会叠加
-            model = glm::translate(model,cubePositions[i]);
-            float angle = 20.0f * i;
-            model = glm::rotate(model,glm::radians(angle),glm::vec3(1.0f,0.3f,0.5f));
-            //model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-            myShader.setMat4("model",model);
-            glDrawArrays(GL_TRIANGLES,0,36); //选择三角形选项
-        }
+        glStencilFunc(GL_ALWAYS,1,0xFF);
+        glStencilOp(GL_KEEP,GL_KEEP,GL_REPLACE);
+        glStencilMask(0xFF);
+
+        croissant.Draw(myShader);
         
         lightShader.use();
         lightShader.setMat4("view",camera.GetViewMatrix());
@@ -365,6 +294,21 @@ int main(){
             glBindVertexArray(lightVAO);
             glDrawArrays(GL_TRIANGLES,0,36);
         }
+
+        singleColorShader.use();
+        singleColorShader.setMat4("view",camera.GetViewMatrix());
+        singleColorShader.setMat4("projection",projection);
+        glm::mat4 highLightModel = glm::mat4(1.0f);
+        highLightModel = glm::scale(highLightModel,glm::vec3(10.5f));
+        singleColorShader.setMat4("model",highLightModel);
+
+        glStencilFunc(GL_NOTEQUAL,1,0xFF);
+        glStencilMask(0x00);
+        glDisable(GL_DEPTH_TEST);
+        croissant.Draw(singleColorShader);
+
+        glStencilMask(0xFF);
+        glEnable(GL_DEPTH_TEST);
 
         //双缓冲，交换颜色缓冲
         glfwSwapBuffers(window);
