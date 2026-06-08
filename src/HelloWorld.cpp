@@ -26,8 +26,8 @@ struct ObjectMaterial{
 };
 
 //窗口大小
-float width = 800;
-float height = 600;
+float width = 1920;
+float height = 1080;
 
 //相机设置全局变量
 Camera camera(glm::vec3(0.0f,0.0f,0.0f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
@@ -626,21 +626,21 @@ int main(){
         
         glBindVertexArray(VAO);
         
-        
+        singleColorShader.use();
         glm::mat4 currentModel = glm::mat4(1.0f);
         currentModel = glm::translate(currentModel,glm::vec3(0.0f,0.0f,-4.0f));
         currentModel = glm::scale(currentModel,glm::vec3(croissantScale));
-        myShader.setMat4("model", currentModel);
-        myShader.setMat4("view",camera.GetViewMatrix());
+        singleColorShader.setMat4("model", currentModel);
+        singleColorShader.setMat4("view",camera.GetViewMatrix());
 
-        myShader.setMat4("projection",projection);
+        singleColorShader.setMat4("projection",projection);
 
         glEnable(GL_STENCIL_TEST);
         glStencilFunc(GL_ALWAYS,1,0xFF);
         glStencilOp(GL_KEEP,GL_KEEP,GL_REPLACE);
         glStencilMask(0xFF);
 
-        croissant.Draw(myShader);
+        croissant.Draw(singleColorShader);
         
         lightShader.use();
         lightShader.setMat4("view",camera.GetViewMatrix());
