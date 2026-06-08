@@ -1,6 +1,15 @@
 #version 330 core
 out vec4 FragColor;
 
-void main(){
-    FragColor = vec4(0,0.9,1,1.0);
+in vec3 vNormal;
+in vec3 fragPos;
+
+uniform vec3 cameraPos;
+uniform samplerCube skybox;
+
+void main()
+{             
+    vec3 I = normalize(fragPos - cameraPos);
+    vec3 R = reflect(I, normalize(vNormal));
+    FragColor = vec4(texture(skybox, R).rgb, 1.0);
 }

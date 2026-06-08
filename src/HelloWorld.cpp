@@ -26,11 +26,11 @@ struct ObjectMaterial{
 };
 
 //窗口大小
-float width = 1920;
-float height = 1080;
+float width = 800;
+float height = 600;
 
 //相机设置全局变量
-Camera camera(glm::vec3(0.0f,0.0f,3.0f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
+Camera camera(glm::vec3(0.0f,0.0f,0.0f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
 float lastX = width/2.0f;
 float lastY = height/2.0f;
 bool firstMouse = true;
@@ -128,6 +128,30 @@ static unsigned int TextureFromFile(const char *path, const std::string &directo
     return textureId;
 }
 
+unsigned int loadCubemap(std::vector<std::string> faces){
+    unsigned int textureID;
+    glGenTextures(1,&textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+    int width,height,nrchannels;
+
+    for(unsigned int i = 0; i < faces.size(); i++){
+       unsigned char *data = stbi_load(faces[i].c_str(),&width,&height,&nrchannels,0);
+       if(data){
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i,0,GL_RGB,width,height,0,GL_RGB,GL_UNSIGNED_BYTE,data);
+        stbi_image_free(data);
+       }
+       else if(!data){
+        std::cout<<"Cube map loaded failed"<<std::endl;
+        stbi_image_free(data);
+       }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
+    return textureID;
+}
 
 int main(){
     //初始化Glfw，使用主版本号3，次版本3
@@ -163,6 +187,8 @@ int main(){
     glfwSetCursorPosCallback(window,mouse_callback);
     glfwSetScrollCallback(window,scroll_callback);
 
+    stbi_set_flip_vertically_on_load(true);
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -170,6 +196,104 @@ int main(){
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
+    //---------------------skybox vertices-----------------
+    float skyboxVertices[] = {
+    // positions          
+    -1.0f,  1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+    -1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f
+};
+
+    //--------------------box vertices-----------------
+    float cubeVertices[] = {
+    // positions          // normals
+    // back face
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+
+    // front face
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+
+    // left face
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+    // right face
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+    // bottom face
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+    // top face
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+};
+    
     glm::vec3 cubePositions[] = {
       glm::vec3( 0.0f,  0.0f,  0.0f), 
       glm::vec3( 2.0f,  5.0f, -15.0f), 
@@ -266,7 +390,7 @@ int main(){
     glGenTextures(1,&grass.id);
     std::string grassPath = resourcePath("src/texture/blending_transparent_window.png");
     int grassWidth,grassHeight,nrChannels;
-    stbi_set_flip_vertically_on_load(true);
+    
     unsigned char *grassData = stbi_load(grassPath.c_str(),&grassWidth,&grassHeight,&nrChannels,0);
     glBindTexture(GL_TEXTURE_2D,grass.id);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
@@ -289,8 +413,6 @@ int main(){
     glBindRenderbuffer(GL_RENDERBUFFER,rbo);
     glRenderbufferStorage(GL_RENDERBUFFER,GL_DEPTH24_STENCIL8,width,height);
     
-
-
     unsigned int fbo;
     glGenFramebuffers(1,&fbo);
     glBindFramebuffer(GL_FRAMEBUFFER,fbo);
@@ -299,6 +421,34 @@ int main(){
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER)!=GL_FRAMEBUFFER_COMPLETE){
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
     }
+
+    //--------------------天空盒VAO---------------------
+    unsigned int skyboxVAO;
+    glGenVertexArrays(1,&skyboxVAO);
+    glBindVertexArray(skyboxVAO);
+    
+    unsigned int skyboxVBO;
+    glGenBuffers(1,&skyboxVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(skyboxVertices),skyboxVertices,GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(float),(void*)0);
+    glEnableVertexAttribArray(0);
+
+    //-----------------------箱子VAO-----------------
+    unsigned int boxVAO;
+    glGenVertexArrays(1,&boxVAO);
+    glBindVertexArray(boxVAO);
+    
+    unsigned int boxVBO;
+    glGenBuffers(1,&boxVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,boxVBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(cubeVertices),cubeVertices,GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     //创建VAO
     unsigned int VAO;
@@ -354,15 +504,32 @@ int main(){
     std::string grassShaderPath = resourcePath("src/fragmentShader/grassShader.fs");
     std::string FragmentframeBufferShader = resourcePath("src/fragmentShader/frameBufferShader.fs");
     std::string VertexframeBufferShader = resourcePath("src/vertexShader/frameBufferShader.vs");
+    std::string vertexSkyboxShader = resourcePath("src/vertexShader/skyboxShader.vs");
+    std::string fragmentSkyboxShader = resourcePath("src/fragmentShader/skyboxShader.fs");
     Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
     Shader lightShader(vertexShaderPath.c_str(), lightFragmentShaderPath.c_str());
     Shader singleColorShader(vertexShaderPath.c_str(),singleColorShaderPath.c_str());
     Shader grassShader(vertexShaderPath.c_str(),grassShaderPath.c_str());
     Shader frameBufferShader(VertexframeBufferShader.c_str(),FragmentframeBufferShader.c_str());
+    Shader skyboxShader(vertexSkyboxShader.c_str(),fragmentSkyboxShader.c_str());
+    
+    //---------------cubemap贴图--------------
+    stbi_set_flip_vertically_on_load(false);
+    std::vector<std::string> faces
+    {
+        resourcePath("src/texture/skybox/right.jpg"),
+        resourcePath("src/texture/skybox/left.jpg"),
+        resourcePath("src/texture/skybox/top.jpg"),
+        resourcePath("src/texture/skybox/bottom.jpg"),
+        resourcePath("src/texture/skybox/front.jpg"),
+        resourcePath("src/texture/skybox/back.jpg")
+    };
+    unsigned int cubemapTexture = loadCubemap(faces);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
     glEnable(GL_BLEND);
+    glDepthFunc(GL_LEQUAL);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
     glm::vec3 sceneClearColor(0.3f, 0.4f, 0.5f);
@@ -392,6 +559,37 @@ int main(){
         //清空颜色缓冲位
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
+
+        //-----------投影矩阵不变，大家都可以用----------------
+        glm::mat4 projection;
+        projection = glm::perspective(glm::radians(camera.Fov),width/height,0.1f,100.0f);
+
+        //----------画skybox------------
+        glDepthMask(GL_FALSE);
+        skyboxShader.use();
+        skyboxShader.setMat4("view",glm::mat3(camera.GetViewMatrix()));
+        skyboxShader.setMat4("projection",projection);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP,cubemapTexture);
+        skyboxShader.setInt("skybox",0);
+        glBindVertexArray(skyboxVAO);
+        glDrawArrays(GL_TRIANGLES,0,36);
+        glDepthMask(GL_TRUE);
+
+        //---------------画箱子-----------------
+        singleColorShader.use();
+        glm::mat4 modelBox = glm::mat4(1.0f);
+        modelBox = glm::translate(modelBox,glm::vec3(0,0,-2.0f));
+        modelBox = glm::scale(modelBox,glm::vec3(0.5f));
+        singleColorShader.setMat4("model",modelBox);
+        singleColorShader.setMat4("view",camera.GetViewMatrix());
+        singleColorShader.setMat4("projection",projection);
+        singleColorShader.setVec3("cameraPos",camera.Position);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP,cubemapTexture);
+        singleColorShader.setInt("skybox",0);
+        glBindVertexArray(boxVAO);
+        glDrawArrays(GL_TRIANGLES,0,36);
 
         //设置要用的shader
         myShader.use();
@@ -435,9 +633,6 @@ int main(){
         myShader.setMat4("model", currentModel);
         myShader.setMat4("view",camera.GetViewMatrix());
 
-        //-----------投影矩阵不变，大家都可以用----------------
-        glm::mat4 projection;
-        projection = glm::perspective(glm::radians(camera.Fov),width/height,0.1f,100.0f);
         myShader.setMat4("projection",projection);
 
         glEnable(GL_STENCIL_TEST);
@@ -460,42 +655,42 @@ int main(){
             glDrawArrays(GL_TRIANGLES,0,36);
         }
 
-        //画高亮
-        singleColorShader.use();
-        singleColorShader.setMat4("view",camera.GetViewMatrix());
-        singleColorShader.setMat4("projection",projection);
-        glm::mat4 highLightModel = glm::mat4(1.0f);
-        highLightModel = glm::scale(highLightModel,glm::vec3(10.5f));
-        singleColorShader.setMat4("model",highLightModel);
+        // //画高亮
+        // singleColorShader.use();
+        // singleColorShader.setMat4("view",camera.GetViewMatrix());
+        // singleColorShader.setMat4("projection",projection);
+        // glm::mat4 highLightModel = glm::mat4(1.0f);
+        // highLightModel = glm::scale(highLightModel,glm::vec3(10.5f));
+        // singleColorShader.setMat4("model",highLightModel);
 
-        glStencilFunc(GL_NOTEQUAL,1,0xFF);
-        glStencilMask(0x00);
-        glDisable(GL_DEPTH_TEST);
-        //croissant.Draw(singleColorShader);
+        // glStencilFunc(GL_NOTEQUAL,1,0xFF);
+        // glStencilMask(0x00);
+        // glDisable(GL_DEPTH_TEST);
+        // //croissant.Draw(singleColorShader);
 
-        glStencilMask(0xFF);
-        glEnable(GL_DEPTH_TEST);
-        glDisable(GL_STENCIL_TEST);
+        // glStencilMask(0xFF);
+        // glEnable(GL_DEPTH_TEST);
+        // glDisable(GL_STENCIL_TEST);
         //面剔除，剔除正面，正面定义为顺时针，所以剔除实际背面
         // glEnable(GL_CULL_FACE);
         // glCullFace(GL_FRONT);
         // glFrontFace(GL_CW);
         
         //画草
-        grassShader.use();
-        for(std::map<float,glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); it ++){
-            glm::mat4 grassModel = glm::mat4(1.0f);
-            grassModel = glm::translate(grassModel,it->second);
-            grassModel = glm::scale(grassModel,glm::vec3(0.8f));
-            grassShader.setMat4("model",grassModel);
-            grassShader.setMat4("view",camera.GetViewMatrix());
-            grassShader.setMat4("projection",projection);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D,grass.id);
-            grassShader.setInt("texture1",0);
-            glBindVertexArray(grassVAO);
-            glDrawArrays(GL_TRIANGLES,0,6);
-        }
+        // grassShader.use();
+        // for(std::map<float,glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); it ++){
+        //     glm::mat4 grassModel = glm::mat4(1.0f);
+        //     grassModel = glm::translate(grassModel,it->second);
+        //     grassModel = glm::scale(grassModel,glm::vec3(0.8f));
+        //     grassShader.setMat4("model",grassModel);
+        //     grassShader.setMat4("view",camera.GetViewMatrix());
+        //     grassShader.setMat4("projection",projection);
+        //     glActiveTexture(GL_TEXTURE0);
+        //     glBindTexture(GL_TEXTURE_2D,grass.id);
+        //     grassShader.setInt("texture1",0);
+        //     glBindVertexArray(grassVAO);
+        //     glDrawArrays(GL_TRIANGLES,0,6);
+        // }
 
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // 返回默认
