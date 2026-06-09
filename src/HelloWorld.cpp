@@ -19,8 +19,8 @@
 #include "imgui_impl_opengl3.h"
 
 //窗口大小
-float width = 800;
-float height = 600;
+float width = 1920;
+float height = 1080;
 
 //相机设置全局变量
 Camera camera(glm::vec3(0.0f,0.0f,0.0f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
@@ -353,6 +353,15 @@ int main(){
         glm::vec3( 0.0f,  0.0f, -3.0f)
     };
 
+    float particles[] = {
+        -0.5f, -0.5f, -0.5f,
+        0.5f, -0.5f, -0.5f,
+        0.5f,  0.5f, -0.5f,
+        0.5f,  0.5f, -0.5f,
+        -0.5f,  0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
+    };
+
     bool firstDraw = true;
     unsigned int DEMTexture;
     glGenTextures(1,&DEMTexture);
@@ -385,7 +394,10 @@ int main(){
     unsigned int skyboxVBO;
     glGenBuffers(1,&skyboxVBO);
     glBindBuffer(GL_ARRAY_BUFFER,skyboxVBO);
-    glBufferData(GL_ARRAY_BUFFER,sizeof(skyboxVertices),skyboxVertices,GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(skyboxVertices),NULL,GL_STATIC_DRAW);
+    void *ptr = glMapBuffer(GL_ARRAY_BUFFER,GL_WRITE_ONLY);
+    memcpy(ptr,skyboxVertices,sizeof(skyboxVertices));
+    glUnmapBuffer(GL_ARRAY_BUFFER);
 
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(float),(void*)0);
     glEnableVertexAttribArray(0);
@@ -405,6 +417,19 @@ int main(){
     glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(3*sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    unsigned int particlesVAO;
+    glGenVertexArrays(1,&particlesVAO);
+    glBindVertexArray(particlesVAO);
+
+    unsigned int particlesVBO;
+    glGenBuffers(1,&particlesVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,particlesVBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(particles),particles,GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(float),(void*)0);
+    glEnableVertexAttribArray(0);
+
+
     //----------------模型创建-------------------------
     Model croissant(resourcePath("src/models/croissant_4k.gltf/croissant_4k.gltf"));
 
@@ -414,9 +439,12 @@ int main(){
     std::string VertexframeBufferShader = resourcePath("src/vertexShader/frameBufferShader.vs");
     std::string vertexSkyboxShader = resourcePath("src/vertexShader/skyboxShader.vs");
     std::string fragmentSkyboxShader = resourcePath("src/fragmentShader/skyboxShader.fs");
+    std::string vertexPointShader = resourcePath("src/vertexShader/pointShader.vs");
+    std::string fragmentPointShader = resourcePath("src/fragmentShader/pointShader.fs");
     Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
     Shader frameBufferShader(VertexframeBufferShader.c_str(),FragmentframeBufferShader.c_str());
     Shader skyboxShader(vertexSkyboxShader.c_str(),fragmentSkyboxShader.c_str());
+    Shader pointShader(vertexPointShader.c_str(),fragmentPointShader.c_str());
     
     //---------------cubemap贴图--------------
     stbi_set_flip_vertically_on_load(false);
@@ -433,9 +461,8 @@ int main(){
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
-    glEnable(GL_BLEND);
-    glDepthFunc(GL_LEQUAL);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_PROGRAM_POINT_SIZE);
+    glDepthFunc(GL_LESS);
 
     glm::vec3 sceneClearColor(0.3f, 0.4f, 0.5f);
     float croissantScale = 10.0f;
@@ -492,6 +519,7 @@ int main(){
                 projection = glm::perspective(glm::radians(90.0f),1.0f,0.1f,100.0f);
                 glm::mat4 view = captureView[i];
                 //----------画skybox------------
+                glDepthFunc(GL_LEQUAL);
                 glDepthMask(GL_FALSE);
                 skyboxShader.use();
                 skyboxShader.setMat4("view",glm::mat3(view));
@@ -502,6 +530,7 @@ int main(){
                 glBindVertexArray(skyboxVAO);
                 glDrawArrays(GL_TRIANGLES,0,36);
                 glDepthMask(GL_TRUE);
+                glDepthFunc(GL_LESS);
 
                 //设置要用的shader
                 myShader.use();
@@ -557,6 +586,7 @@ int main(){
         glm::mat4 projectionReal = glm::perspective(glm::radians(90.0f),width/height,0.1f,100.0f);
         glm::mat4 viewReal = camera.GetViewMatrix();
         //----------画skybox------------
+        glDepthFunc(GL_LEQUAL);
         glDepthMask(GL_FALSE);
         skyboxShader.use();
         skyboxShader.setMat4("view",glm::mat3(viewReal));
@@ -567,6 +597,7 @@ int main(){
         glBindVertexArray(skyboxVAO);
         glDrawArrays(GL_TRIANGLES,0,36);
         glDepthMask(GL_TRUE);
+        glDepthFunc(GL_LESS);
 
         //设置要用的shader
         myShader.use();
@@ -609,6 +640,12 @@ int main(){
         myShader.setMat4("projection",projectionReal);
         croissant.Draw(myShader);
 
+        pointShader.use();
+        pointShader.setMat4("model", glm::mat4(1.0f));
+        pointShader.setMat4("view", viewReal);
+        pointShader.setMat4("projection", projectionReal);
+        glBindVertexArray(particlesVAO);
+        glDrawArrays(GL_POINTS,0,6);
         //---------------画箱子-----------------
         
         frameBufferShader.use();

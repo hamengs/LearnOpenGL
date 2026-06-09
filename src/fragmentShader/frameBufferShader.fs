@@ -11,5 +11,9 @@ void main()
 {             
     vec3 I = normalize(fragPos - cameraPos);
     vec3 R = reflect(I, normalize(vNormal));
-    FragColor = vec4(texture(screenTexture, R).rgb, 1.0);
+    if(gl_FrontFacing){
+        FragColor = vec4(texture(screenTexture, R).rgb, 1.0);
+    }else{
+        FragColor = vec4(0.0,1.0,0.0,1.0);
+    }
 }

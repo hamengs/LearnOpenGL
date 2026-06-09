@@ -17,4 +17,5 @@ void main(){
     vNormal = normalize(normalMatrix * aNormal);
     gl_Position = projection * view * model * vec4(aPos,1.0f);
     TexCoords = aTexCoords;
+    gl_PointSize = gl_Position.z;
 }
