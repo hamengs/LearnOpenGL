@@ -23,7 +23,7 @@ void main(){
     mat3 normalMatrix = mat3(transpose(inverse(model)));
     vs_out.vNormal = normalize(normalMatrix * aNormal);
     vNormal = normalize(normalMatrix * aNormal);
-    gl_Position = projection * view * model * vec4(aPos,1.0f);
+    gl_Position = model * vec4(aPos,1.0f);
     vs_out.texCoords = aTexCoords;
     TexCoords = aTexCoords;
     gl_PointSize = gl_Position.z;

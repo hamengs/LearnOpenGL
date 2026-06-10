@@ -19,8 +19,8 @@
 #include "imgui_impl_opengl3.h"
 
 //窗口大小
-float width = 800;
-float height = 600;
+float width = 1920;
+float height = 1080;
 
 //相机设置全局变量
 Camera camera(glm::vec3(0.0f,0.0f,0.0f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
@@ -439,7 +439,8 @@ int main(){
     //----------------模型创建-------------------------
     Model croissant(resourcePath("src/models/croissant_4k.gltf/croissant_4k.gltf"));
 
-    std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");
+    std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs"); 
+    std::string normalVertexShaderPath = resourcePath("src/vertexShader/normalVertexShader.vs"); 
     std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
     std::string FragmentframeBufferShader = resourcePath("src/fragmentShader/frameBufferShader.fs");
     std::string VertexframeBufferShader = resourcePath("src/vertexShader/frameBufferShader.vs");
@@ -451,7 +452,7 @@ int main(){
     Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
     Shader frameBufferShader(VertexframeBufferShader.c_str(),FragmentframeBufferShader.c_str());
     Shader skyboxShader(vertexSkyboxShader.c_str(),fragmentSkyboxShader.c_str());
-    Shader pointShader(vertexPointShader.c_str(),fragmentPointShader.c_str(),geometryPointShader.c_str());
+    Shader drawNornalShader(normalVertexShaderPath.c_str(),fragmentPointShader.c_str(),geometryPointShader.c_str());
     
     //---------------cubemap贴图--------------
     stbi_set_flip_vertically_on_load(false);
@@ -652,14 +653,15 @@ int main(){
         myShader.setMat4("view",viewReal);  
 
         myShader.setMat4("projection",projectionReal);
+        myShader.setFloat("time",glfwGetTime());
         croissant.Draw(myShader);
 
-        pointShader.use();
-        pointShader.setMat4("model", glm::mat4(1.0f));
-        pointShader.setMat4("view", viewReal);
-        pointShader.setMat4("projection", projectionReal);
-        glBindVertexArray(particlesVAO);
-        glDrawArrays(GL_POINTS,0,6);
+        drawNornalShader.use();
+        drawNornalShader.setMat4("model",currentModel);
+        drawNornalShader.setMat4("view",viewReal);
+        drawNornalShader.setMat4("projection",projectionReal);
+        croissant.Draw(drawNornalShader);
+
         //---------------画箱子-----------------
         
         frameBufferShader.use();
