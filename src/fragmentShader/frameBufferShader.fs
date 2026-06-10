@@ -4,7 +4,7 @@ out vec4 FragColor;
 in VS_OUT{
     vec3 vNormal;
     vec3 fragPos;
-}fs_in
+}fs_in;
 
 uniform vec3 cameraPos;
 uniform samplerCube screenTexture;

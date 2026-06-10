@@ -19,8 +19,8 @@
 #include "imgui_impl_opengl3.h"
 
 //窗口大小
-float width = 1920;
-float height = 1080;
+float width = 800;
+float height = 600;
 
 //相机设置全局变量
 Camera camera(glm::vec3(0.0f,0.0f,0.0f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
@@ -429,6 +429,12 @@ int main(){
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(float),(void*)0);
     glEnableVertexAttribArray(0);
 
+    unsigned int ubo;
+    glGenBuffers(1,&ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER,ubo);
+    glBufferData(GL_UNIFORM_BUFFER,sizeof(glm::mat4)*2,NULL,GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER,0);
+    glBindBufferRange(GL_UNIFORM_BUFFER,0,ubo,0,sizeof(glm::mat4)*2);
 
     //----------------模型创建-------------------------
     Model croissant(resourcePath("src/models/croissant_4k.gltf/croissant_4k.gltf"));
@@ -441,10 +447,11 @@ int main(){
     std::string fragmentSkyboxShader = resourcePath("src/fragmentShader/skyboxShader.fs");
     std::string vertexPointShader = resourcePath("src/vertexShader/pointShader.vs");
     std::string fragmentPointShader = resourcePath("src/fragmentShader/pointShader.fs");
+    std::string geometryPointShader = resourcePath("src/geometryShader/geometryShader.gs");
     Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
     Shader frameBufferShader(VertexframeBufferShader.c_str(),FragmentframeBufferShader.c_str());
     Shader skyboxShader(vertexSkyboxShader.c_str(),fragmentSkyboxShader.c_str());
-    Shader pointShader(vertexPointShader.c_str(),fragmentPointShader.c_str());
+    Shader pointShader(vertexPointShader.c_str(),fragmentPointShader.c_str(),geometryPointShader.c_str());
     
     //---------------cubemap贴图--------------
     stbi_set_flip_vertically_on_load(false);
@@ -463,6 +470,10 @@ int main(){
     glEnable(GL_STENCIL_TEST);
     glEnable(GL_PROGRAM_POINT_SIZE);
     glDepthFunc(GL_LESS);
+
+    unsigned int matrices_index = glGetUniformBlockIndex(frameBufferShader.ID,"Matrices");
+    glUniformBlockBinding(frameBufferShader.ID,matrices_index,0);
+
 
     glm::vec3 sceneClearColor(0.3f, 0.4f, 0.5f);
     float croissantScale = 10.0f;
@@ -499,6 +510,7 @@ int main(){
         ImGui::SliderFloat("Croissant Scale", &croissantScale, 2.0f, 16.0f);
         ImGui::Text("FPS %.1f", ImGui::GetIO().Framerate);
         ImGui::End();
+
         if(firstDraw){
             glBindFramebuffer(GL_FRAMEBUFFER,fbo);
             glViewport(0,0,512,512);
@@ -582,9 +594,11 @@ int main(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(0,0,width,height);
         //--------------正常画一遍场景------------------
-        //-----------投影矩阵不变---------------
-        glm::mat4 projectionReal = glm::perspective(glm::radians(90.0f),width/height,0.1f,100.0f);
+        glm::mat4 projectionReal = glm::perspective(glm::radians(100.0f),width/height,0.1f,100.0f);
         glm::mat4 viewReal = camera.GetViewMatrix();
+        glBindBuffer(GL_UNIFORM_BUFFER,ubo);
+        glBufferSubData(GL_UNIFORM_BUFFER,sizeof(glm::mat4),sizeof(glm::mat4),glm::value_ptr(projectionReal));
+        glBufferSubData(GL_UNIFORM_BUFFER,0,sizeof(glm::mat4),glm::value_ptr(viewReal));
         //----------画skybox------------
         glDepthFunc(GL_LEQUAL);
         glDepthMask(GL_FALSE);
