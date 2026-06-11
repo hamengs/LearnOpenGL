@@ -19,8 +19,8 @@
 #include "imgui_impl_opengl3.h"
 
 //窗口大小
-float width = 800;
-float height = 600;
+float width = 1920;
+float height = 1080;
 
 //相机设置全局变量
 Camera camera(glm::vec3(0.0f,0.0f,80.5f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
@@ -157,7 +157,7 @@ int main(){
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-
+    glfwWindowHint(GLFW_SAMPLES, 4);
     GLFWwindow* window = glfwCreateWindow(width,height,"LearnOpenGL",NULL,NULL);
     if(window==NULL){
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -165,12 +165,19 @@ int main(){
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
 
     //初始化glad,通过glfw的getprocaddress去找到所有的opengl函数地址
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
         std::cout << "Failed to initialized GLAD" << std::endl;
         return -1;
     }
+
+    GLint maxSamples;
+    glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
+
+    std::cout << "Max MSAA Samples: "
+          << maxSamples << std::endl;
     
     //注册窗口改变的回调函数
     glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
@@ -247,6 +254,7 @@ int main(){
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
     glEnable(GL_PROGRAM_POINT_SIZE);
+    //glEnable(GL_MULTISAMPLE);
     glDepthFunc(GL_LESS);
 
     while(!glfwWindowShouldClose(window)){
@@ -283,8 +291,8 @@ int main(){
         myShader.setMat4("view", view);
         myShader.setMat4("projection", projection);
         myShader.setMat4("model",rockModel);
-        
         rock.DrawInstances(myShader,amount);
+        
 
         
         
