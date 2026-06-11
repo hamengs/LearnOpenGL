@@ -108,7 +108,7 @@ void main(){
     for(int i = 0; i < 2; i++){
         result += CalcPointLight(pointLights[i], normal, viewDir, baseColor);
     }
-    result += CalcSpotLight(spotLight,normal,viewDir,baseColor);
+    //result += CalcSpotLight(spotLight,normal,viewDir,baseColor);
     float depth = LinearizeDepth(gl_FragCoord.z)/25;
-    FragColor = vec4(result, 1.0f);
+    FragColor = vec4(baseColor, 1.0f);
 }

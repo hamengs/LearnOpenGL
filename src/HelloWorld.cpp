@@ -19,11 +19,11 @@
 #include "imgui_impl_opengl3.h"
 
 //窗口大小
-float width = 1920;
-float height = 1080;
+float width = 800;
+float height = 600;
 
 //相机设置全局变量
-Camera camera(glm::vec3(0.0f,0.0f,0.0f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
+Camera camera(glm::vec3(0.0f,0.0f,80.5f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
 float lastX = width/2.0f;
 float lastY = height/2.0f;
 bool firstMouse = true;
@@ -190,310 +190,64 @@ int main(){
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    //---------------------skybox vertices-----------------
-    float skyboxVertices[] = {
-    // positions          
-    -1.0f,  1.0f, -1.0f,
-    -1.0f, -1.0f, -1.0f,
-     1.0f, -1.0f, -1.0f,
-     1.0f, -1.0f, -1.0f,
-     1.0f,  1.0f, -1.0f,
-    -1.0f,  1.0f, -1.0f,
-
-    -1.0f, -1.0f,  1.0f,
-    -1.0f, -1.0f, -1.0f,
-    -1.0f,  1.0f, -1.0f,
-    -1.0f,  1.0f, -1.0f,
-    -1.0f,  1.0f,  1.0f,
-    -1.0f, -1.0f,  1.0f,
-
-     1.0f, -1.0f, -1.0f,
-     1.0f, -1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f, -1.0f,
-     1.0f, -1.0f, -1.0f,
-
-    -1.0f, -1.0f,  1.0f,
-    -1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,
-     1.0f, -1.0f,  1.0f,
-    -1.0f, -1.0f,  1.0f,
-
-    -1.0f,  1.0f, -1.0f,
-     1.0f,  1.0f, -1.0f,
-     1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,
-    -1.0f,  1.0f,  1.0f,
-    -1.0f,  1.0f, -1.0f,
-
-    -1.0f, -1.0f, -1.0f,
-    -1.0f, -1.0f,  1.0f,
-     1.0f, -1.0f, -1.0f,
-     1.0f, -1.0f, -1.0f,
-    -1.0f, -1.0f,  1.0f,
-     1.0f, -1.0f,  1.0f
-};
-
-    //--------------------box vertices-----------------
-    float cubeVertices[] = {
-    // positions          // normals
-    // back face
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-
-    // front face
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-
-    // left face
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-
-    // right face
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-
-    // bottom face
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-
-    // top face
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
-};
-    
-    glm::vec3 cubePositions[] = {
-      glm::vec3( 0.0f,  0.0f,  0.0f), 
-      glm::vec3( 2.0f,  5.0f, -15.0f), 
-      glm::vec3(-1.5f, -2.2f, -2.5f),  
-      glm::vec3(-3.8f, -2.0f, -12.3f),  
-      glm::vec3( 2.4f, -0.4f, -3.5f),  
-      glm::vec3(-1.7f,  3.0f, -7.5f),  
-      glm::vec3( 1.3f, -2.0f, -2.5f),  
-      glm::vec3( 1.5f,  2.0f, -2.5f), 
-      glm::vec3( 1.5f,  0.2f, -1.5f), 
-      glm::vec3(-1.3f,  1.0f, -1.5f)  
-    };
-
-    float vertices[] = {
-        // positions          // normals           // texture coords
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-        0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-        0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-        0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-        0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
-        0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-        0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-        0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-        0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-        0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-        0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-        0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-        0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-    };
-    
-    glm::vec3 pointLightPositions[] = {
-        glm::vec3( 0.7f,  0.2f,  2.0f),
-        glm::vec3( 2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f,  2.0f, -12.0f),
-        glm::vec3( 0.0f,  0.0f, -3.0f)
-    };
-
-    float particles[] = {
-        -0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f,  0.5f, -0.5f,
-        0.5f,  0.5f, -0.5f,
-        -0.5f,  0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-    };
-
-    bool firstDraw = true;
-    unsigned int DEMTexture;
-    glGenTextures(1,&DEMTexture);
-    glBindTexture(GL_TEXTURE_CUBE_MAP,DEMTexture);
-    for(int i = 0; i < 6; i++){
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i,0,GL_RGB,512,512,0,GL_RGB,GL_UNSIGNED_BYTE,NULL);
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
-
-    unsigned int rbo;
-    glGenRenderbuffers(1,&rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER,rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER,GL_DEPTH24_STENCIL8,512,512);
-    
-    unsigned int fbo;
-    glGenFramebuffers(1,&fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER,fbo);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER,GL_DEPTH_STENCIL_ATTACHMENT,GL_RENDERBUFFER,rbo);
-
-
-    //--------------------天空盒VAO---------------------
-    unsigned int skyboxVAO;
-    glGenVertexArrays(1,&skyboxVAO);
-    glBindVertexArray(skyboxVAO);
-    
-    unsigned int skyboxVBO;
-    glGenBuffers(1,&skyboxVBO);
-    glBindBuffer(GL_ARRAY_BUFFER,skyboxVBO);
-    glBufferData(GL_ARRAY_BUFFER,sizeof(skyboxVertices),NULL,GL_STATIC_DRAW);
-    void *ptr = glMapBuffer(GL_ARRAY_BUFFER,GL_WRITE_ONLY);
-    memcpy(ptr,skyboxVertices,sizeof(skyboxVertices));
-    glUnmapBuffer(GL_ARRAY_BUFFER);
-
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(float),(void*)0);
-    glEnableVertexAttribArray(0);
-
-    //-----------------------箱子VAO-----------------
-    unsigned int boxVAO;
-    glGenVertexArrays(1,&boxVAO);
-    glBindVertexArray(boxVAO);
-    
-    unsigned int boxVBO;
-    glGenBuffers(1,&boxVBO);
-    glBindBuffer(GL_ARRAY_BUFFER,boxVBO);
-    glBufferData(GL_ARRAY_BUFFER,sizeof(cubeVertices),cubeVertices,GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(3*sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    unsigned int particlesVAO;
-    glGenVertexArrays(1,&particlesVAO);
-    glBindVertexArray(particlesVAO);
-
-    unsigned int particlesVBO;
-    glGenBuffers(1,&particlesVBO);
-    glBindBuffer(GL_ARRAY_BUFFER,particlesVBO);
-    glBufferData(GL_ARRAY_BUFFER,sizeof(particles),particles,GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(float),(void*)0);
-    glEnableVertexAttribArray(0);
-
-    unsigned int ubo;
-    glGenBuffers(1,&ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER,ubo);
-    glBufferData(GL_UNIFORM_BUFFER,sizeof(glm::mat4)*2,NULL,GL_STATIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER,0);
-    glBindBufferRange(GL_UNIFORM_BUFFER,0,ubo,0,sizeof(glm::mat4)*2);
 
     //----------------模型创建-------------------------
     Model croissant(resourcePath("src/models/croissant_4k.gltf/croissant_4k.gltf"));
-
-    std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs"); 
-    std::string normalVertexShaderPath = resourcePath("src/vertexShader/normalVertexShader.vs"); 
-    std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
-    std::string FragmentframeBufferShader = resourcePath("src/fragmentShader/frameBufferShader.fs");
-    std::string VertexframeBufferShader = resourcePath("src/vertexShader/frameBufferShader.vs");
-    std::string vertexSkyboxShader = resourcePath("src/vertexShader/skyboxShader.vs");
-    std::string fragmentSkyboxShader = resourcePath("src/fragmentShader/skyboxShader.fs");
-    std::string vertexPointShader = resourcePath("src/vertexShader/pointShader.vs");
-    std::string fragmentPointShader = resourcePath("src/fragmentShader/pointShader.fs");
-    std::string geometryPointShader = resourcePath("src/geometryShader/geometryShader.gs");
-    Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
-    Shader frameBufferShader(VertexframeBufferShader.c_str(),FragmentframeBufferShader.c_str());
-    Shader skyboxShader(vertexSkyboxShader.c_str(),fragmentSkyboxShader.c_str());
-    Shader drawNornalShader(normalVertexShaderPath.c_str(),fragmentPointShader.c_str(),geometryPointShader.c_str());
+    Model planet(resourcePath("src/models/planet/planet.obj"));
+    Model rock(resourcePath("src/models/rock/rock.obj"));
     
-    //---------------cubemap贴图--------------
-    stbi_set_flip_vertically_on_load(false);
-    std::vector<std::string> faces
-    {
-        resourcePath("src/texture/skybox/right.jpg"),
-        resourcePath("src/texture/skybox/left.jpg"),
-        resourcePath("src/texture/skybox/top.jpg"),
-        resourcePath("src/texture/skybox/bottom.jpg"),
-        resourcePath("src/texture/skybox/front.jpg"),
-        resourcePath("src/texture/skybox/back.jpg")
-    };
-    unsigned int cubemapTexture = loadCubemap(faces);
+
+    std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");  
+    std::string planetVertex = resourcePath("src/vertexShader/planetVertex.vs"); 
+    std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
+
+    Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+    Shader planetShader(planetVertex.c_str(),fragmentShaderPath.c_str());
+    glm::vec3 sceneClearColor(0.0f,0.0f,0.0f);
+
+    //--------------牛角包设置--------------
+    float croissantScale = 8.0f;
+    glm::mat4 croissantModel = glm::mat4(1.0f);
+    croissantModel = glm::scale(croissantModel,glm::vec3(croissantScale));
+    
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f),width/height,0.1f,1000.0f);
+    
+    //------------小行星位置----------------
+    int amount = 1000;
+    std::vector<glm::mat4> matrices(amount);
+    float offset = 2.5f;
+    srand(glfwGetTime());
+    float radius = 50.0f;
+    for(int i =0;i<amount;i++){
+        glm::mat4 model = glm::mat4(1.0f);
+        float angle = 360.0f/amount*i;
+        float radian = glm::radians(angle);
+        float displacement = rand()%50/10.0f-offset;
+        float x = sin(radian)*radius+displacement;
+        float y = displacement*1.4f;
+        float z = cos(radian)*radius+displacement;
+        model = glm::translate(model,glm::vec3(x,y,z));
+
+        //从0.05缩放到0.25
+        glm::vec3 scale = glm::vec3(rand()%20/100.0f+0.05f);
+        model = glm::scale(model,scale);
+
+        float rotAngle =(rand()%360);
+        model = glm::rotate(model,rotAngle,glm::vec3(0.4f,0.6f,0.9f));
+
+        matrices[i] = model;
+    }
+    rock.setupInstances(matrices);
+
+    glm::mat4 planetModel = glm::mat4(1.0f);
+    planetModel = glm::scale(planetModel,glm::vec3(4.0f));
+    glm::mat4 rockModel = glm::mat4(1.0f);
+
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
     glEnable(GL_PROGRAM_POINT_SIZE);
     glDepthFunc(GL_LESS);
-
-    unsigned int matrices_index = glGetUniformBlockIndex(frameBufferShader.ID,"Matrices");
-    glUniformBlockBinding(frameBufferShader.ID,matrices_index,0);
-
-
-    glm::vec3 sceneClearColor(0.3f, 0.4f, 0.5f);
-    float croissantScale = 10.0f;
-    glm::vec3 boxPosition = glm::vec3(0.0f,0.0f,-2.0f);
-    glm::mat4 boxModel = glm::mat4(1.0f);
-    boxModel = glm::translate(boxModel,boxPosition);
-    glm::vec3 capturePos = boxPosition;
-
-    glm::mat4 captureView[] = {
-        glm::lookAt(capturePos,capturePos+glm::vec3(1,0,0),glm::vec3(0,-1,0)), //+X
-        glm::lookAt(capturePos,capturePos+glm::vec3(-1,0,0),glm::vec3(0,-1,0)), //-X
-
-        glm::lookAt(capturePos,capturePos+glm::vec3(0,1,0),glm::vec3(0,0,1)), //+Y
-        glm::lookAt(capturePos,capturePos+glm::vec3(0,-1,0),glm::vec3(0,0,-1)), //-Y
-
-        glm::lookAt(capturePos,capturePos+glm::vec3(0,0,1),glm::vec3(0,-1,0)), //+Z
-        glm::lookAt(capturePos,capturePos+glm::vec3(0,0,-1),glm::vec3(0,-1,0)), //-Z
-
-    };
 
     while(!glfwWindowShouldClose(window)){
         float currentFrameTime = glfwGetTime();
@@ -512,171 +266,27 @@ int main(){
         ImGui::Text("FPS %.1f", ImGui::GetIO().Framerate);
         ImGui::End();
 
-        if(firstDraw){
-            glBindFramebuffer(GL_FRAMEBUFFER,fbo);
-            glViewport(0,0,512,512);
-            for(int i = 0; i < 6; i++){
+        //新frame之前清空所有bit
+        glClearColor(sceneClearColor.r,sceneClearColor.g,sceneClearColor.b,1.0f);
+        glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
 
-                glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_CUBE_MAP_POSITIVE_X+i,DEMTexture,0);
-                if(glCheckFramebufferStatus(GL_FRAMEBUFFER)!=GL_FRAMEBUFFER_COMPLETE){
-                    std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-                }
-                //清楚屏幕后用什么颜色代替
-                glClearColor(sceneClearColor.r, sceneClearColor.g, sceneClearColor.b, 1.0f);
-                //清空颜色缓冲位
-                glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-                glEnable(GL_DEPTH_TEST);
-
-                //-----------投影矩阵不变---------------
-                glm::mat4 projection;
-                projection = glm::perspective(glm::radians(90.0f),1.0f,0.1f,100.0f);
-                glm::mat4 view = captureView[i];
-                //----------画skybox------------
-                glDepthFunc(GL_LEQUAL);
-                glDepthMask(GL_FALSE);
-                skyboxShader.use();
-                skyboxShader.setMat4("view",glm::mat3(view));
-                skyboxShader.setMat4("projection",projection);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_CUBE_MAP,cubemapTexture);
-                skyboxShader.setInt("skybox",0);
-                glBindVertexArray(skyboxVAO);
-                glDrawArrays(GL_TRIANGLES,0,36);
-                glDepthMask(GL_TRUE);
-                glDepthFunc(GL_LESS);
-
-                //设置要用的shader
-                myShader.use();
-                // --------------------Light-------------------------
-                //平行光
-                myShader.setVec3("dirLight.Direction", -0.2f, -1.0f, -0.3f);
-                myShader.setVec3("dirLight.Ambient",   0.05f, 0.05f, 0.05f);
-                myShader.setVec3("dirLight.Diffuse",   0.4f,  0.4f,  0.4f);
-                myShader.setVec3("dirLight.Specular",  0.5f,  0.5f,  0.5f);
-                //点光源
-                for (int i = 0; i < 4; i++) {
-                    std::string base = "pointLights[" + std::to_string(i) + "]";
-                
-                    myShader.setVec3(base + ".Position", pointLightPositions[i]);
-                    myShader.setVec3(base + ".Ambient",  0.05f, 0.05f, 0.05f);
-                    myShader.setVec3(base + ".Diffuse",  0.8f,  0.8f,  0.8f);
-                    myShader.setVec3(base + ".Specular", 1.0f,  1.0f,  1.0f);
-                
-                    myShader.setFloat(base + ".Constant", 1.0f);
-                    myShader.setFloat(base + ".Linear",   0.09f);
-                    myShader.setFloat(base + ".Quadratic", 0.032f);
-                }
-                //聚光
-                myShader.setVec3("spotLight.Position", camera.Position.x, camera.Position.y, camera.Position.z);
-                myShader.setVec3("spotLight.Direction", camera.Front.x, camera.Front.y, camera.Front.z);
-                myShader.setFloat("spotLight.CutOff",glm::cos(glm::radians(12.5f)));
-                myShader.setFloat("spotLight.OuterCutOff",glm::cos(glm::radians(20.0f)));
-                myShader.setVec3("spotLight.Ambient",  0.2f, 0.2f, 0.2f);
-                myShader.setVec3("spotLight.Diffuse",  0.8f, 0.8f, 0.8f);
-                myShader.setVec3("spotLight.Specular", 1.0f, 1.0f, 1.0f);
-                //设置相机
-                myShader.setVec3("viewPos", camera.Position.x, camera.Position.y, camera.Position.z);
-                myShader.setFloat("material.Shininess", 32.0f);
-                glm::mat4 currentModel = glm::mat4(1.0f);
-                currentModel = glm::translate(currentModel,glm::vec3(0.0f,0.0f,-4.0f));
-                currentModel = glm::scale(currentModel,glm::vec3(croissantScale));
-                myShader.setMat4("model", currentModel);
-                myShader.setMat4("view",view);  
-
-                myShader.setMat4("projection",projection);
-                croissant.Draw(myShader);
-            }
-            firstDraw = false;
-        }
-        
-        //先画到fbo里，然后才能画箱子
-        glBindFramebuffer(GL_FRAMEBUFFER,0);
-        glClearColor(sceneClearColor.r, sceneClearColor.g, sceneClearColor.b, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glViewport(0,0,width,height);
-        //--------------正常画一遍场景------------------
-        glm::mat4 projectionReal = glm::perspective(glm::radians(100.0f),width/height,0.1f,100.0f);
-        glm::mat4 viewReal = camera.GetViewMatrix();
-        glBindBuffer(GL_UNIFORM_BUFFER,ubo);
-        glBufferSubData(GL_UNIFORM_BUFFER,sizeof(glm::mat4),sizeof(glm::mat4),glm::value_ptr(projectionReal));
-        glBufferSubData(GL_UNIFORM_BUFFER,0,sizeof(glm::mat4),glm::value_ptr(viewReal));
-        //----------画skybox------------
-        glDepthFunc(GL_LEQUAL);
-        glDepthMask(GL_FALSE);
-        skyboxShader.use();
-        skyboxShader.setMat4("view",glm::mat3(viewReal));
-        skyboxShader.setMat4("projection",projectionReal);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP,cubemapTexture);
-        skyboxShader.setInt("skybox",0);
-        glBindVertexArray(skyboxVAO);
-        glDrawArrays(GL_TRIANGLES,0,36);
-        glDepthMask(GL_TRUE);
-        glDepthFunc(GL_LESS);
-
-        //设置要用的shader
+        //我们要移动相机，view就得更新
+        glm::mat4 view = camera.GetViewMatrix();
+        croissantModel = glm::mat4(1.0f);
+        croissantModel = glm::scale(croissantModel,glm::vec3(croissantScale));
+        planetShader.use();
+        planetShader.setMat4("view", view);
+        planetShader.setMat4("projection", projection);
+        planetShader.setMat4("model",planetModel);
+        planet.Draw(planetShader);
         myShader.use();
-        // --------------------Light-------------------------
-        //平行光
-        myShader.setVec3("dirLight.Direction", -0.2f, -1.0f, -0.3f);
-        myShader.setVec3("dirLight.Ambient",   0.05f, 0.05f, 0.05f);
-        myShader.setVec3("dirLight.Diffuse",   0.4f,  0.4f,  0.4f);
-        myShader.setVec3("dirLight.Specular",  0.5f,  0.5f,  0.5f);
-        //点光源
-        for (int i = 0; i < 4; i++) {
-            std::string base = "pointLights[" + std::to_string(i) + "]";
+        myShader.setMat4("view", view);
+        myShader.setMat4("projection", projection);
+        myShader.setMat4("model",rockModel);
         
-            myShader.setVec3(base + ".Position", pointLightPositions[i]);
-            myShader.setVec3(base + ".Ambient",  0.05f, 0.05f, 0.05f);
-            myShader.setVec3(base + ".Diffuse",  0.8f,  0.8f,  0.8f);
-            myShader.setVec3(base + ".Specular", 1.0f,  1.0f,  1.0f);
+        rock.DrawInstances(myShader,amount);
+
         
-            myShader.setFloat(base + ".Constant", 1.0f);
-            myShader.setFloat(base + ".Linear",   0.09f);
-            myShader.setFloat(base + ".Quadratic", 0.032f);
-        }
-        //聚光
-        myShader.setVec3("spotLight.Position", camera.Position.x, camera.Position.y, camera.Position.z);
-        myShader.setVec3("spotLight.Direction", camera.Front.x, camera.Front.y, camera.Front.z);
-        myShader.setFloat("spotLight.CutOff",glm::cos(glm::radians(12.5f)));
-        myShader.setFloat("spotLight.OuterCutOff",glm::cos(glm::radians(20.0f)));
-        myShader.setVec3("spotLight.Ambient",  0.2f, 0.2f, 0.2f);
-        myShader.setVec3("spotLight.Diffuse",  0.8f, 0.8f, 0.8f);
-        myShader.setVec3("spotLight.Specular", 1.0f, 1.0f, 1.0f);
-        //设置相机
-        myShader.setVec3("viewPos", camera.Position.x, camera.Position.y, camera.Position.z);
-        myShader.setFloat("material.Shininess", 32.0f);
-        glm::mat4 currentModel = glm::mat4(1.0f);
-        currentModel = glm::translate(currentModel,glm::vec3(0.0f,0.0f,-4.0f));
-        currentModel = glm::scale(currentModel,glm::vec3(croissantScale));
-        myShader.setMat4("model", currentModel);
-        myShader.setMat4("view",viewReal);  
-
-        myShader.setMat4("projection",projectionReal);
-        myShader.setFloat("time",glfwGetTime());
-        croissant.Draw(myShader);
-
-        drawNornalShader.use();
-        drawNornalShader.setMat4("model",currentModel);
-        drawNornalShader.setMat4("view",viewReal);
-        drawNornalShader.setMat4("projection",projectionReal);
-        croissant.Draw(drawNornalShader);
-
-        //---------------画箱子-----------------
-        
-        frameBufferShader.use();
-        glm::mat4 modelBox = glm::mat4(1.0f);
-        modelBox = glm::translate(modelBox,glm::vec3(0,0,-2.0f));
-        modelBox = glm::scale(modelBox,glm::vec3(0.5f));
-        frameBufferShader.setMat4("model",modelBox);
-        frameBufferShader.setMat4("view",viewReal);
-        frameBufferShader.setMat4("projection",projectionReal);
-        frameBufferShader.setVec3("cameraPos",camera.Position);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP,DEMTexture);
-        frameBufferShader.setInt("screenTexture",0);
-        glBindVertexArray(boxVAO);
-        glDrawArrays(GL_TRIANGLES,0,36);
         
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

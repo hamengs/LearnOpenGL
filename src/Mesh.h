@@ -21,11 +21,17 @@ class Mesh{
         std::vector<Vertex> vertices;
         std::vector<unsigned int> indices;
         std::vector<Texture> textures;
+        int amount;
+        std::vector<glm::mat4> data;
+
         /*构造函数and函数*/
         Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
         void Draw(Shader &shader);
+        void DrawInstances(Shader &shader,int amount);
+        void setupInstances(const std::vector<glm::mat4> &data);
     private:
         unsigned int VAO, VBO, EBO;
         void setupMesh();
+        
 };
 

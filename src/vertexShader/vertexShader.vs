@@ -2,6 +2,7 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
+layout (location = 3) in mat4 offset;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -18,13 +19,19 @@ out VS_OUT {
 } vs_out;
 
 void main(){
+
+    mat4 finalModel = model * offset;
+
     vs_out.fragPos = vec3(model * vec4(aPos,1.0f));
     fragPos = vec3(model * vec4(aPos,1.0f));
+
     mat3 normalMatrix = mat3(transpose(inverse(model)));
     vs_out.vNormal = normalize(normalMatrix * aNormal);
     vNormal = normalize(normalMatrix * aNormal);
-    gl_Position = projection * view * model * vec4(aPos,1.0f);
+
     vs_out.texCoords = aTexCoords;
     TexCoords = aTexCoords;
+
     gl_PointSize = gl_Position.z;
+    gl_Position = projection * view * finalModel * vec4(aPos,1.0f);
 }

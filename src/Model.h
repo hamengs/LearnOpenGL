@@ -15,10 +15,12 @@ class Model{
             loadModel(path);
         }
         void Draw(Shader shader);
+        void DrawInstances(Shader shader,int amount);
         unsigned int TextureFromFile(
             const char *path,
             const std::string &directory
         );
+        void setupInstances(const std::vector<glm::mat4> &data);
     private:
         std::vector<Mesh> meshes;
         std::vector<Texture> textures_loaded;

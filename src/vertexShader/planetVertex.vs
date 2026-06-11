@@ -7,7 +7,9 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-
+out vec3 fragPos;
+out vec3 vNormal;
+out vec2 TexCoords;
 
 out VS_OUT {
     vec2 texCoords;
@@ -17,9 +19,15 @@ out VS_OUT {
 
 void main(){
     vs_out.fragPos = vec3(model * vec4(aPos,1.0f));
+    fragPos = vec3(model * vec4(aPos,1.0f));
+
     mat3 normalMatrix = mat3(transpose(inverse(model)));
     vs_out.vNormal = normalize(normalMatrix * aNormal);
-    gl_Position = model * vec4(aPos,1.0f);
+    vNormal = normalize(normalMatrix * aNormal);
+
     vs_out.texCoords = aTexCoords;
+    TexCoords = aTexCoords;
+
     gl_PointSize = gl_Position.z;
+    gl_Position = projection * view * model * vec4(aPos,1.0f);
 }

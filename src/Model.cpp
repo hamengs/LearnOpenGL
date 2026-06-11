@@ -8,6 +8,18 @@ void Model::Draw(Shader shader){
     }
 }
 
+void Model::DrawInstances(Shader shader,int amount){
+    for(unsigned int i = 0; i < meshes.size(); i++){
+        meshes[i].DrawInstances(shader,amount);
+    }
+}
+
+void Model::setupInstances(const std::vector<glm::mat4> &data){
+     for(unsigned int i = 0; i < meshes.size(); i++){
+        meshes[i].setupInstances(data);
+    }
+}
+
 void Model::loadModel(std::string path){
     Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(path,aiProcess_Triangulate|aiProcess_FlipUVs|aiProcess_GenSmoothNormals);

@@ -8,6 +8,22 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
     setupMesh();
 }
 
+
+void Mesh::DrawInstances(Shader &shader,int amount){
+
+    for(int i = 0; i<textures.size();i++){
+        glActiveTexture(GL_TEXTURE0+i);
+        glBindTexture(GL_TEXTURE_2D,textures[i].id);
+        shader.setInt(("material."+textures[i].type).c_str(),i);
+    }
+    glActiveTexture(GL_TEXTURE0);
+
+    glBindVertexArray(VAO);
+   
+    glDrawElementsInstanced(GL_TRIANGLES,indices.size(),GL_UNSIGNED_INT,0,amount);
+    glBindVertexArray(0);
+}
+
 void Mesh::Draw(Shader &shader){
 
     for(int i = 0; i<textures.size();i++){
@@ -46,4 +62,27 @@ void Mesh::setupMesh(){
 
     glBindVertexArray(0);
 
+}
+
+void Mesh::setupInstances(const std::vector<glm::mat4> &data){
+    glBindVertexArray(VAO);
+
+    unsigned int instanceVBO;
+    glGenBuffers(1, &instanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER,data.size()*sizeof(glm::mat4),data.data(),GL_STATIC_DRAW);
+
+    glVertexAttribPointer(3,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)0);
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(4,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)(sizeof(glm::vec4)));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(5,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)(sizeof(glm::vec4)*2));
+    glEnableVertexAttribArray(5);
+    glVertexAttribPointer(6,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)(sizeof(glm::vec4)*3));
+    glEnableVertexAttribArray(6);
+
+    glVertexAttribDivisor(3, 1);
+    glVertexAttribDivisor(4, 1);
+    glVertexAttribDivisor(5, 1);
+    glVertexAttribDivisor(6, 1);
 }

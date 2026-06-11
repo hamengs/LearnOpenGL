@@ -8,10 +8,6 @@ in VS_OUT{
     vec3 vNormal;
 }gs_in[];
 
-out vec3 fragPos;
-out vec3 vNormal;
-out vec2 TexCoords; 
-
 uniform float time;
 uniform mat4 view;
 uniform mat4 projection;
