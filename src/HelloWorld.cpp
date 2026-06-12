@@ -213,6 +213,7 @@ int main(){
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
     glEnable(GL_PROGRAM_POINT_SIZE);
+    glDisable(GL_FRAMEBUFFER_SRGB);
     glDepthFunc(GL_LESS);
 
     while(!glfwWindowShouldClose(window)){
