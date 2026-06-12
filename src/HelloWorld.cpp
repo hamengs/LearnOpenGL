@@ -157,7 +157,6 @@ int main(){
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-    glfwWindowHint(GLFW_SAMPLES, 4);
     GLFWwindow* window = glfwCreateWindow(width,height,"LearnOpenGL",NULL,NULL);
     if(window==NULL){
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -195,12 +194,16 @@ int main(){
     //----------------模型创建-------------------------
     Model croissant(resourcePath("src/models/croissant_4k.gltf/croissant_4k.gltf"));
 
-    std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");  
-    std::string planetVertex = resourcePath("src/vertexShader/planetVertex.vs"); 
-    std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
 
+    //------------创建SHADER-------------
+    std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");   
+    std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
+    std::string frameBufferVertex = resourcePath("src/vertexShader/frameBufferShader.vs");   
+    std::string frameBufferFragment = resourcePath("src/fragmentShader/frameBufferShader.fs");
     Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+    Shader frameBufferShader(frameBufferVertex.c_str(),frameBufferFragment.c_str());
     glm::vec3 sceneClearColor(0.0f,0.0f,0.0f);
+
 
     //--------------牛角包设置--------------
     float croissantScale = 8.0f;
@@ -210,10 +213,94 @@ int main(){
     glm::mat4 projection = glm::perspective(glm::radians(45.0f),width/height,0.1f,1000.0f);
     glm::mat4 model = glm::mat4(1.0f);
 
+    float quadVertices[] = {
+        // positions   // texCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
+
+    unsigned int VAO;
+    glGenVertexArrays(1,&VAO);
+    glBindVertexArray(VAO);
+
+    unsigned int VBO;
+    glGenBuffers(1,&VBO);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(quadVertices),quadVertices,GL_STATIC_DRAW);
+    
+    glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,4*sizeof(float),(void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,4*sizeof(float),(void*)(2*sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+
+    //-----------创建fbo-------------
+    unsigned int fbo;
+    glGenFramebuffers(1,&fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER,fbo);
+
+    //----------创建纹理附件---------
+    unsigned int texture;
+    glGenTextures(1,&texture);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE,texture);
+    int samples = 4;
+    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE,samples,GL_RGB,width,height,GL_TRUE);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE,0);
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0,
+        GL_TEXTURE_2D_MULTISAMPLE,
+        texture,
+        0
+    );  
+
+    //----------------创建rbo---------------
+    unsigned int rbo;
+    glGenRenderbuffers(1,&rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER,rbo);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER,4,GL_DEPTH24_STENCIL8,width,height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER,GL_DEPTH_STENCIL_ATTACHMENT,GL_RENDERBUFFER,rbo);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cout << "Framebuffer is not complete!" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //-----------------创建intermediateFBO---------------------
+    unsigned int intermediateFBO;
+    glGenFramebuffers(1,&intermediateFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER,intermediateFBO);
+
+    unsigned int textureIntermediate;
+    glGenTextures(1,&textureIntermediate);
+    glBindTexture(GL_TEXTURE_2D,textureIntermediate);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,width,height,0,GL_RGB,GL_UNSIGNED_BYTE,NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D,0);
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0,
+        GL_TEXTURE_2D,
+        textureIntermediate,
+        0
+    ); 
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cout << "Framebuffer is not complete!" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
     glEnable(GL_PROGRAM_POINT_SIZE);
-    //glEnable(GL_MULTISAMPLE);
     glDepthFunc(GL_LESS);
 
     while(!glfwWindowShouldClose(window)){
@@ -232,7 +319,9 @@ int main(){
         ImGui::SliderFloat("Croissant Scale", &croissantScale, 2.0f, 16.0f);
         ImGui::Text("FPS %.1f", ImGui::GetIO().Framerate);
         ImGui::End();
-
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glEnable(GL_DEPTH_TEST);
         //新frame之前清空所有bit
         glClearColor(sceneClearColor.r,sceneClearColor.g,sceneClearColor.b,1.0f);
         glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
@@ -247,8 +336,18 @@ int main(){
         myShader.setMat4("model",croissantModel);
         croissant.Draw(myShader);
 
-        
-        
+        glBindFramebuffer(GL_READ_FRAMEBUFFER,fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER,intermediateFBO);
+        glBlitFramebuffer(0,0,width,height,0,0,width,height,GL_COLOR_BUFFER_BIT,GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER,0);
+        glDisable(GL_DEPTH_TEST);
+        frameBufferShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D,textureIntermediate);
+        frameBufferShader.setInt("screenTexture",0);
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES,0,6);
+
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
