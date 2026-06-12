@@ -33,5 +33,5 @@ void main(){
     TexCoords = aTexCoords;
 
     gl_PointSize = gl_Position.z;
-    gl_Position = projection * view * finalModel * vec4(aPos,1.0f);
+    gl_Position = projection * view * model * vec4(aPos,1.0f);
 }

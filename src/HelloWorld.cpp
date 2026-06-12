@@ -19,11 +19,11 @@
 #include "imgui_impl_opengl3.h"
 
 //窗口大小
-float width = 1920;
-float height = 1080;
+float width = 800;
+float height = 600;
 
 //相机设置全局变量
-Camera camera(glm::vec3(0.0f,0.0f,80.5f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
+Camera camera(glm::vec3(0.0f,0.0f,2.5f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
 float lastX = width/2.0f;
 float lastY = height/2.0f;
 bool firstMouse = true;
@@ -172,12 +172,6 @@ int main(){
         std::cout << "Failed to initialized GLAD" << std::endl;
         return -1;
     }
-
-    GLint maxSamples;
-    glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
-
-    std::cout << "Max MSAA Samples: "
-          << maxSamples << std::endl;
     
     //注册窗口改变的回调函数
     glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
@@ -200,16 +194,12 @@ int main(){
 
     //----------------模型创建-------------------------
     Model croissant(resourcePath("src/models/croissant_4k.gltf/croissant_4k.gltf"));
-    Model planet(resourcePath("src/models/planet/planet.obj"));
-    Model rock(resourcePath("src/models/rock/rock.obj"));
-    
 
     std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");  
     std::string planetVertex = resourcePath("src/vertexShader/planetVertex.vs"); 
     std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
 
     Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
-    Shader planetShader(planetVertex.c_str(),fragmentShaderPath.c_str());
     glm::vec3 sceneClearColor(0.0f,0.0f,0.0f);
 
     //--------------牛角包设置--------------
@@ -218,38 +208,7 @@ int main(){
     croissantModel = glm::scale(croissantModel,glm::vec3(croissantScale));
     
     glm::mat4 projection = glm::perspective(glm::radians(45.0f),width/height,0.1f,1000.0f);
-    
-    //------------小行星位置----------------
-    int amount = 1000;
-    std::vector<glm::mat4> matrices(amount);
-    float offset = 2.5f;
-    srand(glfwGetTime());
-    float radius = 50.0f;
-    for(int i =0;i<amount;i++){
-        glm::mat4 model = glm::mat4(1.0f);
-        float angle = 360.0f/amount*i;
-        float radian = glm::radians(angle);
-        float displacement = rand()%50/10.0f-offset;
-        float x = sin(radian)*radius+displacement;
-        float y = displacement*1.4f;
-        float z = cos(radian)*radius+displacement;
-        model = glm::translate(model,glm::vec3(x,y,z));
-
-        //从0.05缩放到0.25
-        glm::vec3 scale = glm::vec3(rand()%20/100.0f+0.05f);
-        model = glm::scale(model,scale);
-
-        float rotAngle =(rand()%360);
-        model = glm::rotate(model,rotAngle,glm::vec3(0.4f,0.6f,0.9f));
-
-        matrices[i] = model;
-    }
-    rock.setupInstances(matrices);
-
-    glm::mat4 planetModel = glm::mat4(1.0f);
-    planetModel = glm::scale(planetModel,glm::vec3(4.0f));
-    glm::mat4 rockModel = glm::mat4(1.0f);
-
+    glm::mat4 model = glm::mat4(1.0f);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
@@ -282,17 +241,11 @@ int main(){
         glm::mat4 view = camera.GetViewMatrix();
         croissantModel = glm::mat4(1.0f);
         croissantModel = glm::scale(croissantModel,glm::vec3(croissantScale));
-        planetShader.use();
-        planetShader.setMat4("view", view);
-        planetShader.setMat4("projection", projection);
-        planetShader.setMat4("model",planetModel);
-        planet.Draw(planetShader);
         myShader.use();
         myShader.setMat4("view", view);
         myShader.setMat4("projection", projection);
-        myShader.setMat4("model",rockModel);
-        rock.DrawInstances(myShader,amount);
-        
+        myShader.setMat4("model",croissantModel);
+        croissant.Draw(myShader);
 
         
         
