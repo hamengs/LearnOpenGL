@@ -1,21 +1,14 @@
 #version 330 core
 out vec4 FragColor;
 
-in VS_OUT{
-    vec3 vNormal;
-    vec3 fragPos;
-}fs_in;
+in vec2 TexCoords;
 
-uniform vec3 cameraPos;
-uniform samplerCube screenTexture;
+uniform sampler2D screenTexture;
+
+
 
 void main()
-{             
-    vec3 I = normalize(fs_in.fragPos - cameraPos);
-    vec3 R = reflect(I, normalize(fs_in.vNormal));
-    if(gl_FrontFacing){
-        FragColor = vec4(texture(screenTexture, R).rgb, 1.0);
-    }else{
-        FragColor = vec4(0.0,1.0,0.0,1.0);
-    }
+{       
+        float depth = texture(screenTexture, TexCoords).r;
+        FragColor =  vec4(vec3(depth),1.0f);
 }

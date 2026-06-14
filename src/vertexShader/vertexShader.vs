@@ -7,10 +7,12 @@ layout (location = 3) in mat4 offset;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 lightMatrices;
 
 out vec3 fragPos;
 out vec3 vNormal;
 out vec2 TexCoords;
+out vec4 lightSpacePosition;
 
 out VS_OUT {
     vec2 texCoords;
@@ -31,6 +33,8 @@ void main(){
 
     vs_out.texCoords = aTexCoords;
     TexCoords = aTexCoords;
+
+    lightSpacePosition = lightMatrices * model * vec4(aPos,1.0f);
 
     gl_PointSize = gl_Position.z;
     gl_Position = projection * view * model * vec4(aPos,1.0f);
