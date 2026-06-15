@@ -199,7 +199,7 @@ int main(){
     std::string planetVertex = resourcePath("src/vertexShader/planetVertex.vs"); 
     std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
 
-    Shader myShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+    Shader sceneShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
     glm::vec3 sceneClearColor(0.0f,0.0f,0.0f);
 
     //--------------牛角包设置--------------
@@ -240,14 +240,12 @@ int main(){
         glm::mat4 view = camera.GetViewMatrix();
         croissantModel = glm::mat4(1.0f);
         croissantModel = glm::scale(croissantModel,glm::vec3(croissantScale));
-        myShader.use();
-        myShader.setMat4("view", view);
-        myShader.setMat4("projection", projection);
-        myShader.setMat4("model",croissantModel);
-        croissant.Draw(myShader);
+        sceneShader.use();
+        sceneShader.setMat4("view", view);
+        sceneShader.setMat4("projection", projection);
+        sceneShader.setMat4("model",croissantModel);
+        croissant.Draw(sceneShader);
 
-        
-        
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
