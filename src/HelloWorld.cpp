@@ -1,267 +1,400 @@
-#include <glad/glad.h> 
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
-#include <stdio.h>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <math.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <map>
+
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include "Camera.h"
 #include "Shader.h"
 #include "stb_image.h"
-#include "Camera.h"
-#include "Model.h"
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 
-//窗口大小
-float width = 800;
-float height = 600;
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 600;
 
-//相机设置全局变量
-Camera camera(glm::vec3(0.0f,0.0f,2.5f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
-float lastX = width/2.0f;
-float lastY = height/2.0f;
+Camera camera(glm::vec3(0.0f, 0.0f, 5.0f),
+              glm::vec3(0.0f, 0.0f, 1.0f),
+              glm::vec3(0.0f, 1.0f, 0.0f),
+              45.0f, 0.0f, 90.0f);
+
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
-bool cameraMouseCaptured = false;
-float deltaTime = 0.0f; //当前帧与上一帧的时间差
-float lastFrameTime = 0.0f; //上一帧的时间
+bool hdr = true;
+bool hdrKeyPressed = false;
+float exposure = 1.0f;
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
+unsigned int cubeVAO = 0;
+unsigned int cubeVBO = 0;
+unsigned int quadVAO = 0;
+unsigned int quadVBO = 0;
 
 static std::string resourcePath(const std::string& relativePath)
 {
     return std::string(PROJECT_SOURCE_DIR) + "/" + relativePath;
 }
 
-//resize回调函数
-void framebuffer_size_callback(GLFWwindow* window, int width, int height){
-    glViewport(0,0,width,height);
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void processInput(GLFWwindow* window);
+unsigned int loadTexture(const char* path);
+void renderCube();
+void renderQuad();
+
+int main()
+{
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL HDR Scene", NULL, NULL);
+    if (window == NULL)
+    {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    stbi_set_flip_vertically_on_load(true);
+
+    Shader shader(resourcePath("src/vertexShader/hdr_lighting.vs").c_str(),
+                  resourcePath("src/fragmentShader/hdr_lighting.fs").c_str());
+    Shader hdrShader(resourcePath("src/vertexShader/hdr_screen.vs").c_str(),
+                     resourcePath("src/fragmentShader/hdr_screen.fs").c_str());
+
+    unsigned int brickTexture = loadTexture(resourcePath("src/texture/texture_brick.jpg").c_str());
+
+    unsigned int hdrFBO;
+    glGenFramebuffers(1, &hdrFBO);
+
+    unsigned int colorBuffer;
+    glGenTextures(1, &colorBuffer);
+    glBindTexture(GL_TEXTURE_2D, colorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    unsigned int rboDepth;
+    glGenRenderbuffers(1, &rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cout << "Framebuffer is not complete" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    std::vector<glm::vec3> lightPositions;
+    lightPositions.push_back(glm::vec3(0.0f, 0.0f, 49.5f));
+    lightPositions.push_back(glm::vec3(-1.4f, -1.9f, 9.0f));
+    lightPositions.push_back(glm::vec3(0.0f, -1.8f, 4.0f));
+    lightPositions.push_back(glm::vec3(0.8f, -1.7f, 6.0f));
+
+    std::vector<glm::vec3> lightColors;
+    lightColors.push_back(glm::vec3(200.0f, 200.0f, 200.0f));
+    lightColors.push_back(glm::vec3(0.1f, 0.0f, 0.0f));
+    lightColors.push_back(glm::vec3(0.0f, 0.0f, 0.2f));
+    lightColors.push_back(glm::vec3(0.0f, 0.1f, 0.0f));
+
+    shader.use();
+    shader.setInt("diffuseTexture", 0);
+    hdrShader.use();
+    hdrShader.setInt("hdrBuffer", 0);
+
+    while (!glfwWindowShouldClose(window))
+    {
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        processInput(window);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Fov),
+                                                static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT),
+                                                0.1f,
+                                                100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+
+        shader.use();
+        shader.setMat4("projection", projection);
+        shader.setMat4("view", view);
+        shader.setVec3("viewPos", camera.Position);
+        for (unsigned int i = 0; i < lightPositions.size(); ++i)
+        {
+            char uniformName[32];
+            std::snprintf(uniformName, sizeof(uniformName), "lights[%u].Position", i);
+            shader.setVec3(uniformName, lightPositions[i]);
+            std::snprintf(uniformName, sizeof(uniformName), "lights[%u].Color", i);
+            shader.setVec3(uniformName, lightColors[i]);
+        }
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, brickTexture);
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 25.0f));
+        model = glm::scale(model, glm::vec3(2.5f, 2.5f, 27.5f));
+        shader.setMat4("model", model);
+        shader.setBool("inverseNormals", true);
+        renderCube();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        hdrShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, colorBuffer);
+        hdrShader.setBool("hdr", hdr);
+        hdrShader.setFloat("exposure", exposure);
+        renderQuad();
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    glDeleteVertexArrays(1, &cubeVAO);
+    glDeleteBuffers(1, &cubeVBO);
+    glDeleteVertexArrays(1, &quadVAO);
+    glDeleteBuffers(1, &quadVBO);
+    glDeleteFramebuffers(1, &hdrFBO);
+    glDeleteRenderbuffers(1, &rboDepth);
+    glfwTerminate();
+    return 0;
 }
 
-//处理输入，按esc退出
-void processInput(GLFWwindow* window, float deltaTime){
-    if(glfwGetKey(window,GLFW_KEY_ESCAPE)==GLFW_PRESS){
-        glfwSetWindowShouldClose(window,true);
+void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, true);
+    }
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        camera.ProcessKeyboard(deltaTime, Camera_Movement::FORWARD);
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        camera.ProcessKeyboard(deltaTime, Camera_Movement::BACKWARD);
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        camera.ProcessKeyboard(deltaTime, Camera_Movement::LEFT);
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        camera.ProcessKeyboard(deltaTime, Camera_Movement::RIGHT);
     }
 
-    if(glfwGetKey(window,GLFW_KEY_S)==GLFW_PRESS){
-        camera.ProcessKeyboard(deltaTime,Camera_Movement::BACKWARD);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !hdrKeyPressed)
+    {
+        hdr = !hdr;
+        hdrKeyPressed = true;
+        std::cout << "HDR: " << (hdr ? "on" : "off") << std::endl;
     }
-    if(glfwGetKey(window,GLFW_KEY_W)==GLFW_PRESS){
-        camera.ProcessKeyboard(deltaTime,Camera_Movement::FORWARD);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+    {
+        hdrKeyPressed = false;
     }
-    if(glfwGetKey(window,GLFW_KEY_A)==GLFW_PRESS){
-        camera.ProcessKeyboard(deltaTime,Camera_Movement::LEFT);
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    {
+        exposure = glm::max(0.0f, exposure - 0.5f * deltaTime);
     }
-    if(glfwGetKey(window,GLFW_KEY_D)==GLFW_PRESS){
-        camera.ProcessKeyboard(deltaTime,Camera_Movement::RIGHT);
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        firstMouse = true;
-        cameraMouseCaptured = false;
-    }
-    if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        cameraMouseCaptured = true;
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    {
+        exposure += 0.5f * deltaTime;
     }
 }
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos){
-    if(!cameraMouseCaptured){
-        return;
-    }
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
 
-    if(firstMouse){
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
     }
 
     float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; //注意这里是相反的，因为y坐标是从底部往顶部依次减小的
+    float yoffset = lastY - ypos;
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset,yoffset);
-
+    camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
-    camera.ProcessMouseScroll(yoffset);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
-static unsigned int TextureFromFile(const char *path, const std::string &directory){
-    std::string filename = std::string(path);
-    filename = directory + "/" + filename;
-
-    unsigned int textureId;
-    glGenTextures(1,&textureId);
-    int width,height,nrChannels;
-    unsigned char* data = stbi_load(filename.c_str(),&width,&height,&nrChannels,0);
-    if(data==NULL){
-        std::cout<<"Texture failed to load: "<<filename<<std::endl;
-        return 0;
-    }
-    glBindTexture(GL_TEXTURE_2D,textureId);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    GLenum format = GL_RGB;
-    if(nrChannels == 3) format = GL_RGB;
-    else if (nrChannels == 4) format = GL_RGBA;
-    glTexImage2D(GL_TEXTURE_2D,0,format,width,height,0,format,GL_UNSIGNED_BYTE,data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
-    return textureId;
-}
-
-unsigned int loadCubemap(std::vector<std::string> faces){
+unsigned int loadTexture(const char* path)
+{
     unsigned int textureID;
-    glGenTextures(1,&textureID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-    int width,height,nrchannels;
+    glGenTextures(1, &textureID);
 
-    for(unsigned int i = 0; i < faces.size(); i++){
-       unsigned char *data = stbi_load(faces[i].c_str(),&width,&height,&nrchannels,0);
-       if(data){
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i,0,GL_RGB,width,height,0,GL_RGB,GL_UNSIGNED_BYTE,data);
-        stbi_image_free(data);
-       }
-       else if(!data){
-        std::cout<<"Cube map loaded failed"<<std::endl;
-        stbi_image_free(data);
-       }
+    int width, height, nrComponents;
+    unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data)
+    {
+        GLenum format = GL_RGB;
+        if (nrComponents == 1)
+        {
+            format = GL_RED;
+        }
+        else if (nrComponents == 3)
+        {
+            format = GL_RGB;
+        }
+        else if (nrComponents == 4)
+        {
+            format = GL_RGBA;
+        }
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
+    else
+    {
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+    }
+
+    stbi_image_free(data);
     return textureID;
 }
 
+void renderCube()
+{
+    if (cubeVAO == 0)
+    {
+        float vertices[] = {
+            -1.0f,-1.0f,-1.0f, 0.0f, 0.0f,-1.0f, 0.0f, 0.0f,
+             1.0f, 1.0f,-1.0f, 0.0f, 0.0f,-1.0f, 1.0f, 1.0f,
+             1.0f,-1.0f,-1.0f, 0.0f, 0.0f,-1.0f, 1.0f, 0.0f,
+             1.0f, 1.0f,-1.0f, 0.0f, 0.0f,-1.0f, 1.0f, 1.0f,
+            -1.0f,-1.0f,-1.0f, 0.0f, 0.0f,-1.0f, 0.0f, 0.0f,
+            -1.0f, 1.0f,-1.0f, 0.0f, 0.0f,-1.0f, 0.0f, 1.0f,
 
-int main(){
-    //初始化Glfw，使用主版本号3，次版本3
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
-    //使用核心模式
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-    glfwWindowHint(GLFW_SAMPLES, 4);
-    GLFWwindow* window = glfwCreateWindow(width,height,"LearnOpenGL",NULL,NULL);
-    if(window==NULL){
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(0);
+            -1.0f,-1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+             1.0f,-1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+             1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+             1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+            -1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+            -1.0f,-1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
 
-    //初始化glad,通过glfw的getprocaddress去找到所有的opengl函数地址
-    if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
-        std::cout << "Failed to initialized GLAD" << std::endl;
-        return -1;
-    }
-    
-    //注册窗口改变的回调函数
-    glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
-    //设置窗口大小
-    glViewport(0,0,width,height);
+            -1.0f, 1.0f, 1.0f,-1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+            -1.0f, 1.0f,-1.0f,-1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+            -1.0f,-1.0f,-1.0f,-1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f,-1.0f,-1.0f,-1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f,-1.0f, 1.0f,-1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+            -1.0f, 1.0f, 1.0f,-1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
 
-    glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_NORMAL);
-    glfwSetCursorPosCallback(window,mouse_callback);
-    glfwSetScrollCallback(window,scroll_callback);
+             1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+             1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+             1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+             1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+             1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+             1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
 
-    stbi_set_flip_vertically_on_load(true);
+            -1.0f,-1.0f,-1.0f, 0.0f,-1.0f, 0.0f, 0.0f, 1.0f,
+             1.0f,-1.0f,-1.0f, 0.0f,-1.0f, 0.0f, 1.0f, 1.0f,
+             1.0f,-1.0f, 1.0f, 0.0f,-1.0f, 0.0f, 1.0f, 0.0f,
+             1.0f,-1.0f, 1.0f, 0.0f,-1.0f, 0.0f, 1.0f, 0.0f,
+            -1.0f,-1.0f, 1.0f, 0.0f,-1.0f, 0.0f, 0.0f, 0.0f,
+            -1.0f,-1.0f,-1.0f, 0.0f,-1.0f, 0.0f, 0.0f, 1.0f,
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGui::StyleColorsDark();
+            -1.0f, 1.0f,-1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+             1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+             1.0f, 1.0f,-1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+             1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+            -1.0f, 1.0f,-1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f
+        };
 
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 330");
-
-
-    //----------------模型创建-------------------------
-    Model croissant(resourcePath("src/models/croissant_4k.gltf/croissant_4k.gltf"));
-
-    std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");  
-    std::string planetVertex = resourcePath("src/vertexShader/planetVertex.vs"); 
-    std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
-
-    Shader sceneShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
-    glm::vec3 sceneClearColor(0.0f,0.0f,0.0f);
-
-    //--------------牛角包设置--------------
-    float croissantScale = 8.0f;
-    glm::mat4 croissantModel = glm::mat4(1.0f);
-    croissantModel = glm::scale(croissantModel,glm::vec3(croissantScale));
-    
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f),width/height,0.1f,1000.0f);
-    glm::mat4 model = glm::mat4(1.0f);
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_STENCIL_TEST);
-    glEnable(GL_PROGRAM_POINT_SIZE);
-    glDepthFunc(GL_LESS);
-
-    while(!glfwWindowShouldClose(window)){
-        float currentFrameTime = glfwGetTime();
-        deltaTime = currentFrameTime - lastFrameTime;
-        lastFrameTime = currentFrameTime;
-        
-        processInput(window,deltaTime);
-
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        ImGui::Begin("Debug");
-        ImGui::ColorEdit3("Clear Color", glm::value_ptr(sceneClearColor));
-        ImGui::SliderFloat("Croissant Scale", &croissantScale, 2.0f, 16.0f);
-        ImGui::Text("FPS %.1f", ImGui::GetIO().Framerate);
-        ImGui::End();
-
-        //新frame之前清空所有bit
-        glClearColor(sceneClearColor.r,sceneClearColor.g,sceneClearColor.b,1.0f);
-        glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-
-        //我们要移动相机，view就得更新
-        glm::mat4 view = camera.GetViewMatrix();
-        croissantModel = glm::mat4(1.0f);
-        croissantModel = glm::scale(croissantModel,glm::vec3(croissantScale));
-        sceneShader.use();
-        sceneShader.setMat4("view", view);
-        sceneShader.setMat4("projection", projection);
-        sceneShader.setMat4("model",croissantModel);
-        croissant.Draw(sceneShader);
-
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        //双缓冲，交换颜色缓冲
-        glfwSwapBuffers(window);
-        //检测有无事件触发（比如键盘输入鼠标移动），更新窗口并且调用回调函数
-        glfwPollEvents();
-
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &cubeVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        glBindVertexArray(cubeVAO);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
     }
 
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-    //释放所有资源
-    glfwTerminate();
-    return 0;
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
 }
 
+void renderQuad()
+{
+    if (quadVAO == 0)
+    {
+        float quadVertices[] = {
+            -1.0f,  1.0f, 0.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f,
+             1.0f,  1.0f, 1.0f, 1.0f,
+             1.0f, -1.0f, 1.0f, 0.0f
+        };
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    }
 
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
