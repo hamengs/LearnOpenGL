@@ -10,12 +10,16 @@
 #include <string>
 #include <vector>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #include "Camera.h"
 #include "Shader.h"
 #include "stb_image.h"
 
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1920;
+const unsigned int SCR_HEIGHT = 1080;
 
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f),
               glm::vec3(0.0f, 0.0f, 1.0f),
@@ -25,16 +29,17 @@ Camera camera(glm::vec3(0.0f, 0.0f, 5.0f),
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
-bool hdr = true;
-bool hdrKeyPressed = false;
-float exposure = 1.0f;
+bool cameraMouseCaptured = false;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+float exposure = 0.2f;
 
 unsigned int cubeVAO = 0;
 unsigned int cubeVBO = 0;
 unsigned int quadVAO = 0;
 unsigned int quadVBO = 0;
+unsigned int tunnelVAO = 0;
+unsigned int tunnelVBO = 0;
 
 static std::string resourcePath(const std::string& relativePath)
 {
@@ -42,12 +47,13 @@ static std::string resourcePath(const std::string& relativePath)
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 unsigned int loadTexture(const char* path);
 void renderCube();
 void renderQuad();
+void renderTunnel();
 
 int main()
 {
@@ -59,7 +65,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL HDR Scene", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL HDR Clamp Demo", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -70,7 +76,7 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -81,36 +87,38 @@ int main()
     glEnable(GL_DEPTH_TEST);
     stbi_set_flip_vertically_on_load(true);
 
-    Shader shader(resourcePath("src/vertexShader/hdr_lighting.vs").c_str(),
-                  resourcePath("src/fragmentShader/hdr_lighting.fs").c_str());
-    Shader hdrShader(resourcePath("src/vertexShader/hdr_screen.vs").c_str(),
-                     resourcePath("src/fragmentShader/hdr_screen.fs").c_str());
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
 
+    Shader shader(resourcePath("src/vertexShader/lighting.vs").c_str(),
+                  resourcePath("src/fragmentShader/lighting.fs").c_str());
+    Shader frameShader(resourcePath("src/vertexShader/frameBufferShader.vs").c_str(),
+                    resourcePath("src/fragmentShader/frameBufferShader.fs").c_str());
     unsigned int brickTexture = loadTexture(resourcePath("src/texture/texture_brick.jpg").c_str());
 
     unsigned int hdrFBO;
-    glGenFramebuffers(1, &hdrFBO);
+    glGenFramebuffers(1,&hdrFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER,hdrFBO);
 
-    unsigned int colorBuffer;
-    glGenTextures(1, &colorBuffer);
-    glBindTexture(GL_TEXTURE_2D, colorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    unsigned int hdrTexture;
+    glGenTextures(1,&hdrTexture);
+    glBindTexture(GL_TEXTURE_2D,hdrTexture);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,SCR_WIDTH,SCR_HEIGHT,0,GL_RGB,GL_FLOAT,NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     unsigned int rboDepth;
     glGenRenderbuffers(1, &rboDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    {
-        std::cout << "Framebuffer is not complete" << std::endl;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,hdrTexture,0);
 
     std::vector<glm::vec3> lightPositions;
     lightPositions.push_back(glm::vec3(0.0f, 0.0f, 49.5f));
@@ -126,8 +134,6 @@ int main()
 
     shader.use();
     shader.setInt("diffuseTexture", 0);
-    hdrShader.use();
-    hdrShader.setInt("hdrBuffer", 0);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -137,7 +143,15 @@ int main()
 
         processInput(window);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        ImGui::Begin("Debug");
+        ImGui::Text("FPS %.1f", ImGui::GetIO().Framerate);
+        ImGui::SliderFloat("Exposure", &exposure, 0.0f, 5.0f);
+        ImGui::End();
+
+        glBindFramebuffer(GL_FRAMEBUFFER,hdrFBO);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -162,21 +176,37 @@ int main()
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, brickTexture);
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 25.0f));
-        model = glm::scale(model, glm::vec3(2.5f, 2.5f, 27.5f));
-        shader.setMat4("model", model);
-        shader.setBool("inverseNormals", true);
-        renderCube();
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        hdrShader.use();
+        shader.setMat4("model", glm::mat4(1.0f));
+        shader.setBool("inverseNormals", false);
+        shader.setBool("useTexture", true);
+        shader.setFloat("textureScale", 1.0f);
+        shader.setVec3("objectColor", glm::vec3(1.0f));
+        shader.setVec3("emissiveColor", glm::vec3(0.0f));
+        renderTunnel();
+
+        glm::mat4 lamp = glm::mat4(1.0f);
+        lamp = glm::translate(lamp, glm::vec3(0.0f, 0.0f, 49.2f));
+        lamp = glm::scale(lamp, glm::vec3(1.4f, 1.4f, 0.08f));
+        shader.setMat4("model", lamp);
+        shader.setBool("inverseNormals", false);
+        shader.setBool("useTexture", false);
+        shader.setFloat("textureScale", 1.0f);
+        shader.setVec3("objectColor", glm::vec3(1.0f));
+        shader.setVec3("emissiveColor", glm::vec3(25.0f, 25.0f, 25.0f));
+        renderCube();
+
+        glBindFramebuffer(GL_FRAMEBUFFER,0);
+        glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+        frameShader.use();
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, colorBuffer);
-        hdrShader.setBool("hdr", hdr);
-        hdrShader.setFloat("exposure", exposure);
+        glBindTexture(GL_TEXTURE_2D,hdrTexture);
+        frameShader.setInt("hdrTexture",0);
+        frameShader.setFloat("exposure", exposure);
         renderQuad();
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -186,8 +216,11 @@ int main()
     glDeleteBuffers(1, &cubeVBO);
     glDeleteVertexArrays(1, &quadVAO);
     glDeleteBuffers(1, &quadVBO);
-    glDeleteFramebuffers(1, &hdrFBO);
-    glDeleteRenderbuffers(1, &rboDepth);
+    glDeleteVertexArrays(1, &tunnelVAO);
+    glDeleteBuffers(1, &tunnelVBO);
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     glfwTerminate();
     return 0;
 }
@@ -214,24 +247,17 @@ void processInput(GLFWwindow* window)
     {
         camera.ProcessKeyboard(deltaTime, Camera_Movement::RIGHT);
     }
-
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !hdrKeyPressed)
+    if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS)
     {
-        hdr = !hdr;
-        hdrKeyPressed = true;
-        std::cout << "HDR: " << (hdr ? "on" : "off") << std::endl;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        firstMouse = true;
+        cameraMouseCaptured = true;
     }
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+    if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
     {
-        hdrKeyPressed = false;
-    }
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-    {
-        exposure = glm::max(0.0f, exposure - 0.5f * deltaTime);
-    }
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-    {
-        exposure += 0.5f * deltaTime;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        firstMouse = true;
+        cameraMouseCaptured = false;
     }
 }
 
@@ -242,6 +268,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
+    if (!cameraMouseCaptured)
+    {
+        return;
+    }
+
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
@@ -373,16 +404,94 @@ void renderCube()
     glBindVertexArray(0);
 }
 
+void renderTunnel()
+{
+    if (tunnelVAO == 0)
+    {
+        const float x = 2.5f;
+        const float y = 2.5f;
+        const float nearZ = -2.5f;
+        const float farZ = 52.5f;
+        const float lengthRepeat = 22.0f;
+        const float crossRepeat = 2.0f;
+
+        float vertices[] = {
+            // floor, normal points into the tunnel
+            -x, -y, nearZ,  0.0f, 1.0f, 0.0f,  0.0f,         0.0f,
+             x, -y, nearZ,  0.0f, 1.0f, 0.0f,  crossRepeat,  0.0f,
+             x, -y, farZ,   0.0f, 1.0f, 0.0f,  crossRepeat,  lengthRepeat,
+             x, -y, farZ,   0.0f, 1.0f, 0.0f,  crossRepeat,  lengthRepeat,
+            -x, -y, farZ,   0.0f, 1.0f, 0.0f,  0.0f,         lengthRepeat,
+            -x, -y, nearZ,  0.0f, 1.0f, 0.0f,  0.0f,         0.0f,
+
+            // ceiling
+            -x,  y, farZ,   0.0f,-1.0f, 0.0f,  0.0f,         lengthRepeat,
+             x,  y, farZ,   0.0f,-1.0f, 0.0f,  crossRepeat,  lengthRepeat,
+             x,  y, nearZ,  0.0f,-1.0f, 0.0f,  crossRepeat,  0.0f,
+             x,  y, nearZ,  0.0f,-1.0f, 0.0f,  crossRepeat,  0.0f,
+            -x,  y, nearZ,  0.0f,-1.0f, 0.0f,  0.0f,         0.0f,
+            -x,  y, farZ,   0.0f,-1.0f, 0.0f,  0.0f,         lengthRepeat,
+
+            // left wall
+            -x, -y, farZ,   1.0f, 0.0f, 0.0f,  0.0f,         lengthRepeat,
+            -x,  y, farZ,   1.0f, 0.0f, 0.0f,  crossRepeat,  lengthRepeat,
+            -x,  y, nearZ,  1.0f, 0.0f, 0.0f,  crossRepeat,  0.0f,
+            -x,  y, nearZ,  1.0f, 0.0f, 0.0f,  crossRepeat,  0.0f,
+            -x, -y, nearZ,  1.0f, 0.0f, 0.0f,  0.0f,         0.0f,
+            -x, -y, farZ,   1.0f, 0.0f, 0.0f,  0.0f,         lengthRepeat,
+
+            // right wall
+             x, -y, nearZ, -1.0f, 0.0f, 0.0f,  0.0f,         0.0f,
+             x,  y, nearZ, -1.0f, 0.0f, 0.0f,  crossRepeat,  0.0f,
+             x,  y, farZ,  -1.0f, 0.0f, 0.0f,  crossRepeat,  lengthRepeat,
+             x,  y, farZ,  -1.0f, 0.0f, 0.0f,  crossRepeat,  lengthRepeat,
+             x, -y, farZ,  -1.0f, 0.0f, 0.0f,  0.0f,         lengthRepeat,
+             x, -y, nearZ, -1.0f, 0.0f, 0.0f,  0.0f,         0.0f,
+
+            // bright end wall, still textured so overexposure can wipe out detail
+            -x, -y, farZ,   0.0f, 0.0f,-1.0f,  0.0f,         0.0f,
+             x, -y, farZ,   0.0f, 0.0f,-1.0f,  crossRepeat,  0.0f,
+             x,  y, farZ,   0.0f, 0.0f,-1.0f,  crossRepeat,  crossRepeat,
+             x,  y, farZ,   0.0f, 0.0f,-1.0f,  crossRepeat,  crossRepeat,
+            -x,  y, farZ,   0.0f, 0.0f,-1.0f,  0.0f,         crossRepeat,
+            -x, -y, farZ,   0.0f, 0.0f,-1.0f,  0.0f,         0.0f
+        };
+
+        glGenVertexArrays(1, &tunnelVAO);
+        glGenBuffers(1, &tunnelVBO);
+        glBindVertexArray(tunnelVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, tunnelVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+
+    glBindVertexArray(tunnelVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 30);
+    glBindVertexArray(0);
+}
+
 void renderQuad()
 {
     if (quadVAO == 0)
     {
         float quadVertices[] = {
-            -1.0f,  1.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, 0.0f, 0.0f,
-             1.0f,  1.0f, 1.0f, 1.0f,
-             1.0f, -1.0f, 1.0f, 0.0f
+            // positions   // texCoords
+            -1.0f,  1.0f,  0.0f, 1.0f,
+            -1.0f, -1.0f,  0.0f, 0.0f,
+             1.0f, -1.0f,  1.0f, 0.0f,
+
+            -1.0f,  1.0f,  0.0f, 1.0f,
+             1.0f, -1.0f,  1.0f, 0.0f,
+             1.0f,  1.0f,  1.0f, 1.0f
         };
+
         glGenVertexArrays(1, &quadVAO);
         glGenBuffers(1, &quadVBO);
         glBindVertexArray(quadVAO);
@@ -392,9 +501,11 @@ void renderQuad()
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
     }
 
     glBindVertexArray(quadVAO);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
