@@ -146,6 +146,32 @@ unsigned int loadCubemap(std::vector<std::string> faces){
     return textureID;
 }
 
+void Drawsquare(const std::vector<float>& vertices, Shader& shader, unsigned int texture, unsigned int normalTexture){
+    //-------------加载平面-------------------
+    unsigned int squareVAO;
+    glGenVertexArrays(1,&squareVAO);
+    glBindVertexArray(squareVAO);
+
+    unsigned int squareVBO;
+    glGenBuffers(1,&squareVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,squareVBO);
+    glBufferData(GL_ARRAY_BUFFER,vertices.size()*sizeof(float),vertices.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)(6*sizeof(float)));
+    glEnableVertexAttribArray(2);
+    shader.use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,texture);
+    shader.setInt("material.Diffuse",0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D,normalTexture);
+    shader.setInt("brickNormalMap",1);
+
+    glDrawArrays(GL_TRIANGLES,0,6);
+}
 
 int main(){
     //初始化Glfw，使用主版本号3，次版本3
@@ -191,22 +217,32 @@ int main(){
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
+        // positions          // normals        // texCoords
+    std::vector<float> vertices = {
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
+         0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   1.0f, 0.0f,
+         0.5f,  0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
+    
+         0.5f,  0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
+        -0.5f,  0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 1.0f,
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f
+    };
+
+    glm::vec3 pointLightPosition = glm::vec3(1.0f,2.0f,0.5f);
+    //-------------加载法线贴图--------------
+    unsigned int brickNormalMap = TextureFromFile(std::string("brickwall_normal.jpg").c_str(),resourcePath("src/texture"));
+    //-------------加载纹理贴图--------------
+    unsigned int brickTexture = TextureFromFile(std::string("brickwall.jpg").c_str(),resourcePath("src/texture"));
 
     //----------------模型创建-------------------------
     Model croissant(resourcePath("src/models/croissant_4k.gltf/croissant_4k.gltf"));
 
     std::string vertexShaderPath = resourcePath("src/vertexShader/vertexShader.vs");  
-    std::string planetVertex = resourcePath("src/vertexShader/planetVertex.vs"); 
     std::string fragmentShaderPath = resourcePath("src/fragmentShader/fragmentShader.fs");
 
     Shader sceneShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
     glm::vec3 sceneClearColor(0.0f,0.0f,0.0f);
 
-    //--------------牛角包设置--------------
-    float croissantScale = 8.0f;
-    glm::mat4 croissantModel = glm::mat4(1.0f);
-    croissantModel = glm::scale(croissantModel,glm::vec3(croissantScale));
-    
     glm::mat4 projection = glm::perspective(glm::radians(45.0f),width/height,0.1f,1000.0f);
     glm::mat4 model = glm::mat4(1.0f);
 
@@ -228,8 +264,8 @@ int main(){
 
         ImGui::Begin("Debug");
         ImGui::ColorEdit3("Clear Color", glm::value_ptr(sceneClearColor));
-        ImGui::SliderFloat("Croissant Scale", &croissantScale, 2.0f, 16.0f);
         ImGui::Text("FPS %.1f", ImGui::GetIO().Framerate);
+        ImGui::DragFloat3("PointLightPos",glm::value_ptr(pointLightPosition),0.05f);
         ImGui::End();
 
         //新frame之前清空所有bit
@@ -238,13 +274,21 @@ int main(){
 
         //我们要移动相机，view就得更新
         glm::mat4 view = camera.GetViewMatrix();
-        croissantModel = glm::mat4(1.0f);
-        croissantModel = glm::scale(croissantModel,glm::vec3(croissantScale));
         sceneShader.use();
         sceneShader.setMat4("view", view);
         sceneShader.setMat4("projection", projection);
-        sceneShader.setMat4("model",croissantModel);
-        croissant.Draw(sceneShader);
+        sceneShader.setMat4("model",model);
+        sceneShader.setVec3("viewPos",camera.Position);
+        sceneShader.setFloat("material.Shininess",32.0f);
+        sceneShader.setVec3("pointLight.Position",pointLightPosition);
+        sceneShader.setVec3("pointLight.Ambient",  glm::vec3(0.05f));
+        sceneShader.setVec3("pointLight.Diffuse",  glm::vec3(0.8f));
+        sceneShader.setVec3("pointLight.Specular", glm::vec3(1.0f));
+        sceneShader.setFloat("pointLight.Constant",  1.0f);
+        sceneShader.setFloat("pointLight.Linear",    0.09f);
+        sceneShader.setFloat("pointLight.Quadratic", 0.032f);
+
+        Drawsquare(vertices,sceneShader,brickTexture,brickNormalMap);
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
