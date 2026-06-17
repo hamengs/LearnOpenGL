@@ -32,17 +32,20 @@ struct SpotLight{
     float OuterCutOff;
 };
 
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 bloomColor;
+
 uniform Material material;
 uniform DirLight dirLight;
 uniform PointLight pointLights[4];
 uniform SpotLight spotLight;
 uniform vec3 viewPos;
+uniform bool isLight;
+uniform vec3 lightColor;
 
 in vec3 fragPos;
 in vec3 vNormal;
 in vec2 TexCoords;
-
-out vec4 FragColor;
 
 float near = 0.1f;
 float far = 100.0f;
@@ -100,15 +103,26 @@ float LinearizeDepth(float depth){
 }
 
 void main(){
-    vec3 normal = normalize(vNormal);
-    vec3 viewDir = normalize(viewPos - fragPos);
-    vec3 baseColor = texture(material.Diffuse, TexCoords).rgb;
+    vec3 result;
+    if(isLight){
+        result = lightColor;
+    }else{
+        vec3 normal = normalize(vNormal);
+        vec3 viewDir = normalize(viewPos - fragPos);
+        vec3 baseColor = texture(material.Diffuse, TexCoords).rgb;
 
-    vec3 result = CalcDirLight(dirLight, normal, viewDir, baseColor);
-    for(int i = 0; i < 2; i++){
-        result += CalcPointLight(pointLights[i], normal, viewDir, baseColor);
+        result = CalcDirLight(dirLight, normal, viewDir, baseColor);
+        for(int i = 0; i < 2; i++){
+            result += CalcPointLight(pointLights[i], normal, viewDir, baseColor);
+        }
+        //result += CalcSpotLight(spotLight,normal,viewDir,baseColor);
     }
-    //result += CalcSpotLight(spotLight,normal,viewDir,baseColor);
-    float depth = LinearizeDepth(gl_FragCoord.z)/25;
-    FragColor = vec4(baseColor, 1.0f);
+
+    FragColor = vec4(result, 1.0f);
+    float brightness = dot(result, vec3(0.2126f, 0.7152f, 0.0722f));
+    if(brightness > 2.0f){
+        bloomColor = vec4(result,1.0f);
+    }else{
+        bloomColor = vec4(0.0f,0.0f,0.0f,1.0f);
+    }
 }

@@ -1,9 +1,19 @@
-#version 330 core
+#version 330 
+
+in vec2 TexCoords;
 out vec4 FragColor;
 
-void main()
-{             
+uniform sampler2D hdrColorTexture;
+uniform sampler2D bloomColorTexture;
+uniform float exposure;
 
-    FragColor = vec4(0.0,1.0,0.0,1.0);
+void main()
+{   
     
+    vec3 result = texture(hdrColorTexture,TexCoords).rgb;
+    result += texture(bloomColorTexture,TexCoords).rgb;
+    result *= exposure;
+    result = result / (1.0f + result);
+    result = pow(result,vec3(1.0f/2.2f));
+    FragColor = vec4(result,1.0f);
 }
