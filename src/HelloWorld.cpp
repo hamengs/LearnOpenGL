@@ -19,8 +19,8 @@
 #include "imgui_impl_opengl3.h"
 
 //窗口大小
-float width = 1920;
-float height = 1080;
+float width = 800;
+float height = 600;
 
 //相机设置全局变量
 Camera camera(glm::vec3(0.0f,0.0f,2.5f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
@@ -341,6 +341,52 @@ int main(){
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
+    //--------G-BufferFBO-----------
+    unsigned int gBuffer;
+    glGenFramebuffers(1,&gBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER,gBuffer);
+
+    //--------gPosition------------
+    unsigned int gPosition;
+    glGenTextures(1,&gPosition);
+    glBindTexture(GL_TEXTURE_2D,gPosition);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width,height,0,GL_RGB,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,gPosition,0);
+
+    //--------gNormal------------
+    unsigned int gNormal;
+    glGenTextures(1,&gNormal);
+    glBindTexture(GL_TEXTURE_2D,gNormal);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width,height,0,GL_RGB,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,gNormal,0);
+
+    //--------gAlbedoSpecular------------
+    unsigned int gAlbedoSpecular;
+    glGenTextures(1,&gAlbedoSpecular);
+    glBindTexture(GL_TEXTURE_2D,gAlbedoSpecular);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,width,height,0,GL_RGBA,GL_FLOAT,NULL);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2,GL_TEXTURE_2D,gAlbedoSpecular,0);
+
+    //---------gDepth------------
+    unsigned int gDepth;
+    glGenRenderbuffers(1,&gDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER,gDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER,GL_DEPTH_COMPONENT,width,height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_RENDERBUFFER,gDepth);
+
+    GLuint attachments[3] = {
+        GL_COLOR_ATTACHMENT0,
+        GL_COLOR_ATTACHMENT1,
+        GL_COLOR_ATTACHMENT2
+    };
+    glDrawBuffers(3,attachments);
+
 
     //----------------模型创建-------------------------
     Model croissant(resourcePath("src/models/croissant_4k.gltf/croissant_4k.gltf"));
@@ -351,71 +397,19 @@ int main(){
     std::string frameVS = resourcePath("src/vertexShader/frameBufferShader.vs");
     std::string frameFS = resourcePath("src/fragmentShader/frameBufferShader.fs");
     std::string blurFS = resourcePath("src/fragmentShader/blurShader.fs");
+    std::string lightFS = resourcePath("src/fragmentShader/lightFragmentShader.fs");
 
     Shader sceneShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
     Shader fboShader(frameVS.c_str(),frameFS.c_str());
     Shader blurShader(frameVS.c_str(),blurFS.c_str());
+    Shader lightShader(vertexShaderPath.c_str(),lightFS.c_str());
     glm::vec3 sceneClearColor(0.0f,0.0f,0.0f);
     unsigned int woodTexture = TextureFromFile("texture_brick.jpg", resourcePath("src/texture"));
 
-    //--------bloomFBO------------
-    unsigned int bloomFBO;
-    glGenFramebuffers(1,&bloomFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER,bloomFBO);
-
-    unsigned int hdrColorTexture; //hdr普通画面
-    glGenTextures(1,&hdrColorTexture);
-    glBindTexture(GL_TEXTURE_2D,hdrColorTexture);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width,height,0,GL_RGB,GL_FLOAT,NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    unsigned int bloomColorTexture; //泛光的画面提取画面亮度大于一定程度的fragment
-    glGenTextures(1,&bloomColorTexture);
-    glBindTexture(GL_TEXTURE_2D,bloomColorTexture);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width,height,0,GL_RGB,GL_FLOAT,NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D,0);
-
-    unsigned int bloomDepth;
-    glGenRenderbuffers(1,&bloomDepth);
-    glBindRenderbuffer(GL_RENDERBUFFER,bloomDepth);
-    glRenderbufferStorage(GL_RENDERBUFFER,GL_DEPTH_COMPONENT24,width,height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_RENDERBUFFER,bloomDepth);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,hdrColorTexture,0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,bloomColorTexture,0);
-
-    unsigned int pingpongFBO[2];
-    unsigned int pingpongColorTexture[2];
-    glGenFramebuffers(2,pingpongFBO);
-    glGenTextures(2,pingpongColorTexture);
-    for(int i = 0; i < 2; i++){
-        glBindFramebuffer(GL_FRAMEBUFFER,pingpongFBO[i]);
-        glBindTexture(GL_TEXTURE_2D,pingpongColorTexture[i]);
-        glTexImage2D(GL_TEXTURE_2D,0,GL_RGB16F,width,height,0,GL_RGB,GL_FLOAT,NULL);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,pingpongColorTexture[i],0);
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER,0);
-
     glm::mat4 projection = glm::perspective(glm::radians(45.0f),width/height,0.1f,1000.0f);
     glm::mat4 model = glm::mat4(1.0f);
-
     float exposure = 0.2;
-
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_STENCIL_TEST);
-    glEnable(GL_PROGRAM_POINT_SIZE);
-    glDepthFunc(GL_LESS);
 
     while(!glfwWindowShouldClose(window)){
         float currentFrameTime = glfwGetTime();
@@ -430,16 +424,11 @@ int main(){
 
         ImGui::Begin("Debug");
         ImGui::ColorEdit3("Clear Color", glm::value_ptr(sceneClearColor));
-        ImGui::DragFloat("exposure", &exposure, 0.01f, 0.01f, 20.0f);
+        ImGui::DragFloat("exposure",&exposure,0.02f,0.1f,1.0f);
         ImGui::Text("FPS %.1f", ImGui::GetIO().Framerate);
         ImGui::End();
 
-        glBindFramebuffer(GL_FRAMEBUFFER,bloomFBO);
-        unsigned int attachments[2] = {
-            GL_COLOR_ATTACHMENT0,
-            GL_COLOR_ATTACHMENT1
-        };
-        glDrawBuffers(2,attachments);
+        glBindFramebuffer(GL_FRAMEBUFFER,gBuffer);
         //新frame之前清空所有bit
         glClearColor(sceneClearColor.r,sceneClearColor.g,sceneClearColor.b,1.0f);
         glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
@@ -452,52 +441,52 @@ int main(){
         sceneShader.setVec3("viewPos", camera.Position);
         sceneShader.setFloat("material.Shininess", 32.0f);
         sceneShader.setInt("material.Diffuse", 0);
-        sceneShader.setVec3("dirLight.Direction", -0.2f, -1.0f, -0.3f);
-        sceneShader.setVec3("dirLight.Ambient", 0.02f, 0.02f, 0.02f);
-        sceneShader.setVec3("dirLight.Diffuse", 0.15f, 0.15f, 0.15f);
-        sceneShader.setVec3("dirLight.Specular", 0.2f, 0.2f, 0.2f);
-        for(int i = 0; i < 2; i++){
-            std::string index = std::to_string(i);
-            sceneShader.setVec3("pointLights[" + index + "].Position", lightPositions[i]);
-            sceneShader.setVec3("pointLights[" + index + "].Ambient", lightColors[i] * 0.02f);
-            sceneShader.setVec3("pointLights[" + index + "].Diffuse", lightColors[i]);
-            sceneShader.setVec3("pointLights[" + index + "].Specular", lightColors[i]);
-            sceneShader.setFloat("pointLights[" + index + "].Constant", 1.0f);
-            sceneShader.setFloat("pointLights[" + index + "].Linear", 0.09f);
-            sceneShader.setFloat("pointLights[" + index + "].Quadratic", 0.032f);
-        }
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         drawBoxes(sceneShader);
-        drawLights(sceneShader);
-
-        bool horizontal = true;
-        bool firstIteration = true;
-        blurShader.use();
-        blurShader.setInt("image",0);
-        glDisable(GL_DEPTH_TEST);
-        for(int i = 0; i < 10; i++){
-            glBindFramebuffer(GL_FRAMEBUFFER,pingpongFBO[horizontal]);
-            blurShader.setBool("horizontal",horizontal);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D,firstIteration ? bloomColorTexture : pingpongColorTexture[!horizontal]);
-            drawQuad();
-            horizontal = !horizontal;
-            firstIteration = false;
-        }
+        
+        
+        //----------画画面从fbo-----------
 
         glBindFramebuffer(GL_FRAMEBUFFER,0);
-        glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+        glClearColor(sceneClearColor.r,sceneClearColor.g,sceneClearColor.b,1.0f);
+        glDisable(GL_DEPTH_TEST);
         fboShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D,gPosition);
+        fboShader.setInt("gPosition",0);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D,hdrColorTexture);
-        fboShader.setInt("hdrColorTexture",1);
+        glBindTexture(GL_TEXTURE_2D,gNormal);
+        fboShader.setInt("gNormal",1);
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D,pingpongColorTexture[!horizontal]);
-        fboShader.setInt("bloomColorTexture",2);
+        glBindTexture(GL_TEXTURE_2D,gAlbedoSpecular);
+        fboShader.setInt("gAlbedoSpecular",2);
+        fboShader.setVec3("viewPos", camera.Position);
+        fboShader.setVec3("dirLight.Direction", -0.2f, -1.0f, -0.3f);
+        fboShader.setVec3("dirLight.Ambient", 0.02f, 0.02f, 0.02f);
+        fboShader.setVec3("dirLight.Diffuse", 0.15f, 0.15f, 0.15f);
+        fboShader.setVec3("dirLight.Specular", 0.2f, 0.2f, 0.2f);
+        for(int i = 0; i < 2; i++){
+            std::string index = std::to_string(i);
+            fboShader.setVec3("pointLights[" + index + "].Position", lightPositions[i]);
+            fboShader.setVec3("pointLights[" + index + "].Ambient", lightColors[i] * 0.02f);
+            fboShader.setVec3("pointLights[" + index + "].Diffuse", lightColors[i]);
+            fboShader.setVec3("pointLights[" + index + "].Specular", lightColors[i]);
+            fboShader.setFloat("pointLights[" + index + "].Constant", 1.0f);
+            fboShader.setFloat("pointLights[" + index + "].Linear", 0.09f);
+            fboShader.setFloat("pointLights[" + index + "].Quadratic", 0.032f);
+        }
         fboShader.setFloat("exposure",exposure);
         drawQuad();
         glEnable(GL_DEPTH_TEST);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER,gBuffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
+        glBlitFramebuffer(0,0,width,height,0,0,width,height,GL_DEPTH_BUFFER_BIT,GL_NEAREST);
+        lightShader.use();
+        lightShader.setMat4("view", view);
+        lightShader.setMat4("projection", projection);
+        lightShader.setFloat("exposure",exposure);
+        drawLights(lightShader);
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
