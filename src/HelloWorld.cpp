@@ -19,8 +19,8 @@
 #include "imgui_impl_opengl3.h"
 
 //窗口大小
-float width = 1920;
-float height = 1080;
+float width = 800;
+float height = 600;
 
 //相机设置全局变量
 Camera camera(glm::vec3(0.0f,0.0f,2.5f),glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,1.0f,0.0f),45.0f,0.0f,-90.0f);
