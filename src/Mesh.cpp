@@ -4,6 +4,18 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
     this->vertices = vertices;
     this->indices = indices;
     this->textures =  textures;
+    this->diffuseColor = glm::vec3(1.0f);
+    this->hasDiffuseTexture = !textures.empty();
+
+    setupMesh();
+}
+
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, glm::vec3 diffuseColor, bool hasDiffuseTexture){
+    this->vertices = vertices;
+    this->indices = indices;
+    this->textures =  textures;
+    this->diffuseColor = diffuseColor;
+    this->hasDiffuseTexture = hasDiffuseTexture;
 
     setupMesh();
 }
@@ -25,14 +37,19 @@ void Mesh::DrawInstances(Shader &shader,int amount){
 }
 
 void Mesh::Draw(Shader &shader){
-
+    bool hasSpecular = false;
     for(int i = 0; i<textures.size();i++){
+        if(textures[i].type == "Specular"){
+            hasSpecular = true;
+        }
         glActiveTexture(GL_TEXTURE0+i);
         glBindTexture(GL_TEXTURE_2D,textures[i].id);
         shader.setInt(("material."+textures[i].type).c_str(),i);
     }
     glActiveTexture(GL_TEXTURE0);
-
+    shader.setBool("material.HasDiffuseTexture", hasDiffuseTexture);
+    shader.setVec3("material.DiffuseColor", diffuseColor);
+    shader.setBool("material.HasSpecular", hasSpecular);
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES,indices.size(),GL_UNSIGNED_INT,0);
     glBindVertexArray(0);

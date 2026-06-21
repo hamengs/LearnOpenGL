@@ -23,9 +23,12 @@ class Mesh{
         std::vector<Texture> textures;
         int amount;
         std::vector<glm::mat4> data;
+        glm::vec3 diffuseColor;
+        bool hasDiffuseTexture;
 
         /*构造函数and函数*/
         Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
+        Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, glm::vec3 diffuseColor, bool hasDiffuseTexture);
         void Draw(Shader &shader);
         void DrawInstances(Shader &shader,int amount);
         void setupInstances(const std::vector<glm::mat4> &data);

@@ -64,7 +64,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
     glGetProgramiv(ID, GL_LINK_STATUS, &success);
     if(!success) {
         glGetProgramInfoLog(ID, 512, NULL, infoLog);
-        std::cout<<"ERROR::SHADER::PROGRAM\n";
+        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
     }
 
     //删除不需要的文件了
@@ -156,7 +156,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
     glGetProgramiv(ID, GL_LINK_STATUS, &success);
     if(!success) {
         glGetProgramInfoLog(ID, 512, NULL, infoLog);
-        std::cout<<"ERROR::SHADER::PROGRAM\n";
+        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
     }
 
     //删除不需要的文件了
@@ -197,4 +197,9 @@ void Shader::setVec3(const std::string &name, float x, float y, float z) const
 void Shader::setVec3(const std::string &name, const glm::vec3 &value) const
 {
     glUniform3fv(glGetUniformLocation(ID,name.c_str()),1, glm::value_ptr(value));
+}
+
+void Shader::setVec2(const std::string &name, const glm::vec2 &value) const
+{
+    glUniform2fv(glGetUniformLocation(ID,name.c_str()),1, glm::value_ptr(value));
 }
